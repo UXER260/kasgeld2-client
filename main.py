@@ -80,7 +80,7 @@ class UserSelectionWindow(Camillo_GUI_framework.Gui):
         if (self.values and self.values["-SEARCH_BAR_FIELD-"]) and search_name is None:
             search_name = self.values["-SEARCH_BAR_FIELD-"]
 
-        if self.values["-SEARCH_BAR_FIELD-"]:
+        if self.values and self.values["-SEARCH_BAR_FIELD-"]:
             self.window['-NAME_LIST-'].update(backend.filter_list(search_name, self.name_list))
             self.window["-SEARCH_BAR_FIELD-"].update(search_name)
 

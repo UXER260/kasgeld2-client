@@ -28,10 +28,13 @@ Voeg inlog scherm toe
 
 Client:
 Check voor updates vlak na starten van applicatie (na dat sessie is geverifieerd)
-
+✅
 
 Client:
 Voeg admin account overview toe
+
+Client:
+(alleen beschikbaar wanneer ingelogd) In admin overview kan de (of 'een') opper admin (met de juiste gemachtigden) andere admins toevoegen en bepalen of ze zelf ook admins toekunnen voegen ÉN welke leerlingen de nieuwe admin kan beheren
 
 Client:
 uitlog knop
