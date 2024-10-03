@@ -1,59 +1,38 @@
-Server:
-Compleet nieuw inlogsysteem zonder het gebruik van ips voor login sessies,
-maar met wachtwoord hashes om in te loggen om een login token te verkrijgen in de vorm van een cookie
-✅
-
-Server:
-Authenticatie toevoegen aan alle gebruikersgerelateerde endpoints
-✅
-
-Server:
-Gebruikers kunnen verandering van bijv saldo aanvragen met transactie verzoek
-
-
-Server:
-Ruim random `raise` keywords op. Voornamelijk in 'authentication.py' en vervang ze met if statement checks.
-✅
-
-
-Server:
-Andere methode om sessie token te genereren, omdat huidige manier niet super veilig is. (Hash van een huidige timestamp)
-✅
-
-
-Client:
 Voeg inlog scherm toe
 ✅
 
-
-Client:
 Check voor updates vlak na starten van applicatie (na dat sessie is geverifieerd)
 ✅
 
-Client:
-Voeg admin account overview toe
+Fix crash wanneer inlog sessie verloopt tijdens gebruiken
 
-Client:
-(alleen beschikbaar wanneer ingelogd) In admin overview kan de (of 'een') opper admin (met de juiste gemachtigden) andere admins toevoegen en bepalen of ze zelf ook admins toekunnen voegen ÉN welke leerlingen de nieuwe admin kan beheren
+In gebruiker overzicht tekst dat aangeeft sinds wanneer leerling/gebruiker of DVR zit en hoe lang dat is tot het hede
 
-Client:
-uitlog knop
+REFRESH KNOP in o/a namen lijst
+
+voeg remote mode toe aan config.json. Verbind aan bijv 'https://kasgeld.uxer260.net/' inplaats van bijv 'http://schoolserver.local:8000/' of 'http://localhost:8000/'
+    + zorg ervoor dat directe lan verbinding ook HTTPS gebruikt
+
+
+Instellingen knop in account kies menu
+met onder andere:
+- config.json configurator (moet zelf json editor maken als aparte included module in project voor alle json data typen). natuurlijk gebruiksvriendelijk met checkboxes inplaats van "true" en "false" typen enz...
+    + andere json file die verantwoordelijk is voor tooltips per json key, deze tooltips kunnen OOK gebruikt worden om aan te geven dat een bepaalde instelling veranderen pas effect heeft na herstarten van programma, bijv `use_global_exception_catcher`.
+- account overview
+    + (alleen beschikbaar wanneer ingelogd) In admin overview kan de (of 'een') opper admin (met de juiste gemachtigden) andere admins toevoegen en bepalen of ze zelf ook admins toekunnen voegen ÉN welke leerlingen de nieuwe admin kan beheren
+- uitlog knop
+
+
+Filosofeer en bedenk of bij de T0DO hier onder "ongeautoriseerd/offline" OF ALLEEN "offline" moet staan.
+
+
+Optie om in ongeautoriseerd/offline mode te starten (waar zo wat elke knop is uitgeschakeld 'greyed out') maar wel de toegang tot het instellingenknopje om daar locale wijzigingen te maken
 
 
 Client & Server:
 Voeg bij saldo-verander menu datum kiezer toe. Die datum word dat bij de server opgeslagen in de database bij 'purchase date' (geeft aan wanneer aankoop was gemaakt) of iets dergelijks. De `transaction timestamp` (geeft aan wanneer transactie daadwerkelijk os toegevoegd) blijft behouden.
 
 
-Server:
-Voeg tabel toe aan database die per admin account (met admin id als primary key)
-een whitelist die bijhoudt welke user accounts gewijzigd mogen worden.
-Als admin id (als primary key) niet in tabel voorkomt, dan heeft die admin toegang tot het
-wijzigen van elk user account (standaard)
-
-
-Server:
-Authenticate code via email wanneer admin account wordt aangemaakt
-
-
-Beiden:
+Client & Server:
+'dependencies.txt' file maken
 Maak installer om bijv dependencies te installeren

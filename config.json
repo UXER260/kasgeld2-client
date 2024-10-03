@@ -1,9 +1,12 @@
 {
-  "request_url": "http://schoolserver.local:8000/",
+  "request_url": "http://localhost:8000/",
   "cookiejar_location": "cookiejar.json",
   "window_size": [1000, 600],
   "window_edge_margin": [15, 15],
   "theme": "SystemDefaultForReal",
   "font": ["Helvetica", 35],
-  "item_separation": ["-", 80]
+  "item_separation": ["-", 80],
+  "catch_handled_http_exceptions": true,
+  "catch_connectivity_error_exceptions": true,
+  "use_global_exception_handler": true
 }

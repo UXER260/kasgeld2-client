@@ -41,4 +41,5 @@ class RawTransactionData(BaseModel):
     amount: float
     saldo_after_transaction: float
     transaction_timestamp: int
+    transaction_made_timestamp: int
     user_id: int

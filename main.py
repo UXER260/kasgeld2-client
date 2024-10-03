@@ -1,10 +1,11 @@
 # client/main.py
 
 import datetime
+from typing import Optional
 
 import backend
 import Camillo_GUI_framework
-import updater
+# import updater
 from imports import *
 
 with open('config.json', 'r') as f:
@@ -14,7 +15,7 @@ with open('config.json', 'r') as f:
 class App(Camillo_GUI_framework.App):
     @classmethod
     def run(cls):
-        updater.deploy_latest_update()
+        # updater.deploy_latest_update()
         # als nieuwe update beschikbaar en gedownload was,
         # dan zal dit programma nu herstarten en alle code hieronder niet meer worden ge-execute
 
@@ -22,7 +23,7 @@ class App(Camillo_GUI_framework.App):
         if not valid_session:
             cls.current_gui().window.hide()
             if pysg.popup_yes_no("Log in voor toegang", title="De inlog is verlopen",
-                                 font=backend.default_font()) != "Yes":
+                                 font=backend.get_font()) != "Yes":
                 cls.active = False
                 return False
             else:
@@ -58,7 +59,7 @@ class UserSelectionWindow(Camillo_GUI_framework.Gui):
         elif self.event == '-NAME_LIST-' and self.values['-NAME_LIST-']:  # when clicked and list is not emtpy
             username = self.values['-NAME_LIST-'][0]
             if not backend.User.get_user_exists_by_username(username=username):
-                pysg.Popup(f"Gebruiker met naam '{username}' bestaat niet meer.", title="ERROR",
+                pysg.popup(f"Gebruiker met naam '{username}' bestaat niet meer.", title="ERROR",
                            font=self.font)
                 self.refresh()
                 return
@@ -75,13 +76,11 @@ class UserSelectionWindow(Camillo_GUI_framework.Gui):
         elif self.event == "add":
             self.menu.set_gui(gui=AddUserMenu())
 
-    def refresh(self, search_name: str | None = None):  # refresh username_list
+    def refresh(self, search_name: Optional[str] = None):  # refresh username_list
         self.name_list = backend.User.get_username_list()
-        if (self.values and self.values["-SEARCH_BAR_FIELD-"]) and search_name is None:
-            search_name = self.values["-SEARCH_BAR_FIELD-"]
 
         if self.values and self.values["-SEARCH_BAR_FIELD-"]:
-            self.window['-NAME_LIST-'].update(backend.filter_list(search_name, self.name_list))
+            self.window['-NAME_LIST-'].update(backend.filter_list(self.values["-SEARCH_BAR_FIELD-"], self.name_list))
             self.window["-SEARCH_BAR_FIELD-"].update(search_name)
 
         else:
@@ -117,7 +116,7 @@ class UserOverviewWindow(Camillo_GUI_framework.Gui):
                        key="-SALDO-"),
              pysg.Button(" ⚙ ", font=self.font, key="-OPTIONS_BUTTON-")],
             [pysg.Listbox(self.transaction_preview_list, enable_events=True, expand_y=True, expand_x=True,
-                          font=backend.default_font(scale=0.7), key="-TRANSACTION_PREVIEW_LIST-")],
+                          font=self.get_font(scale=0.7), key="-TRANSACTION_PREVIEW_LIST-")],
             [pysg.Button("Verander Saldo", font=self.font, expand_x=True, key="-SET_SALDO_BUTTON-")]]
 
     def update(self):
@@ -186,25 +185,25 @@ class TransActionDetailsWindow(Camillo_GUI_framework.Gui):
             [pysg.Text(config['item_separation'][0] * config['item_separation'][1], justification="c",
                        expand_x=True,
                        font=self.font)],
-            [pysg.Text('Datum & Tijd', font=backend.default_font(scale=0.7)), pysg.Push(),
-             pysg.Text(f"{datetime_string}", font=backend.default_font(scale=0.7),
+            [pysg.Text('Datum & Tijd', font=self.get_font(scale=0.7)), pysg.Push(),
+             pysg.Text(f"{datetime_string}", font=self.get_font(scale=0.7),
                        key="-TRANSACTION_DATE-TIME-")],
             [pysg.Text(config['item_separation'][0] * config['item_separation'][1], justification="c",
                        expand_x=True,
                        font=self.font)],
-            [pysg.Text('Bedrag', font=backend.default_font(scale=0.7)), pysg.Push(),
-             pysg.Text(self.transaction.amount, font=backend.default_font(scale=0.7), key="-AMOUNT-")],
+            [pysg.Text('Bedrag', font=self.get_font(scale=0.7)), pysg.Push(),
+             pysg.Text(self.transaction.amount, font=self.get_font(scale=0.7), key="-AMOUNT-")],
             [pysg.Text(config['item_separation'][0] * config['item_separation'][1], justification="c",
                        expand_x=True,
                        font=self.font)],
-            [pysg.Text('Saldo Na Transactie', font=backend.default_font(scale=0.7)), pysg.Push(),
-             pysg.Text(self.transaction.saldo_after_transaction, font=backend.default_font(scale=0.7),
+            [pysg.Text('Saldo Na Transactie', font=self.get_font(scale=0.7)), pysg.Push(),
+             pysg.Text(self.transaction.saldo_after_transaction, font=self.get_font(scale=0.7),
                        key="-SALDO_AFTER_TRANSACTION-")],
             [pysg.Text(config['item_separation'][0] * config['item_separation'][1], justification="c",
                        expand_x=True,
                        font=self.font)],
-            [pysg.Text('Beschrijving', font=backend.default_font(scale=0.7), justification="c", expand_x=True, )],
-            [pysg.Multiline(self.transaction.description, font=backend.default_font(scale=0.7), disabled=True,
+            [pysg.Text('Beschrijving', font=self.get_font(scale=0.7), justification="c", expand_x=True, )],
+            [pysg.Multiline(self.transaction.description, font=self.get_font(scale=0.7), disabled=True,
                             expand_x=True,
                             size=(0, 7),
                             key="-TRANSACTION_DESCRIPTION-")],
@@ -212,31 +211,62 @@ class TransActionDetailsWindow(Camillo_GUI_framework.Gui):
 
 
 class SetSaldoMenu(Camillo_GUI_framework.Gui):
-    def __init__(self, user: backend.User, window_title=None, *args, **kwargs):
+    def __init__(self, user: backend.User, window_is_popup=True, window_title=None, window_dimensions=(None, None), *args, **kwargs):
         if window_title is None:
             window_title = f"Pas saldo aan - {user.data.name}"
         self.user = user
-        super().__init__(window_title=window_title, *args, **kwargs)
+        super().__init__(window_title=window_title, window_is_popup=window_is_popup, window_dimensions=window_dimensions, *args, **kwargs)
 
     def layout(self) -> list[list[pysg.Element]]:
         return [
-            [pysg.Text("Bedrag", font=self.font), pysg.Push(),
-             pysg.DropDown(["-", "+", "op"], "-", readonly=True, font=self.font, key="-PLUS_MINUS-"),
-             pysg.InputText("", font=self.font, expand_x=True, key='-AMOUNT-')],
-            [pysg.Text("Titel:", font=self.font), pysg.Push(),
-             pysg.InputText("", font=self.font, expand_x=True, key='-TRANSACTION_TITLE-')],
-            [pysg.Text("Beschrijving", font=self.font, expand_x=True)],
-            [pysg.Multiline(font=self.font, expand_x=True, expand_y=True, size=(0, 7),
-                            key="-TRANSACTION_DESCRIPTION-")],
+            [pysg.Text(f"Bedrag*", font=self.font, expand_x=True, expand_y=True), pysg.Push(), pysg.DropDown(["-", "+", "op"], "-",  tooltip="Of ingevuld bedrag van saldo zal worden afgetrokken '-'(standaard),\nToegevoegd '+',\nof op dat het saldo gelijk aan het bedrag word gezet.", readonly=True, font=self.font, key="-PLUS_MINUS-"), pysg.InputText("", font=self.font, size=(15, 0), key='-AMOUNT-')],
+            [pysg.Text(f"Aanmelddatum", tooltip="Sinds wanneer deze leerling leerling is op DVR", font=self.font, expand_x=True, expand_y=True), pysg.Push(), pysg.InputText("", font=self.font, size=(15, 0), key="-SIGNUP_DATE-")],
+            [pysg.Text(f"Berekendatum", tooltip="Vanaf welk moment het kasgeld is berekend\nvoor deze leerling leerling is op DVR\n(Wanneer leeg geljik aan aanmelddatum)", font=self.font, expand_x=True, expand_y=True), pysg.Push(), pysg.InputText('', font=self.font, size=(15, 0), key="-CALCULATION_START_DATE-")],
+            [pysg.HorizontalSeparator()],
+            [pysg.Text(f"* vereiste info", font=self.get_font(.7))],
             [pysg.Button("OK", expand_x=True, font=self.font, key="OK")]
         ]
+
+        # col1 = pysg.Column([
+        #     [pysg.Text("Bedrag", font=self.font),
+        #      pysg.DropDown(["-", "+", "op"], "-", readonly=True, font=self.font, key="-PLUS_MINUS-",
+        #                    tooltip="Of ingevuld bedrag van saldo zal worden afgetrokken '-'(standaard),\nToegevoegd '+',\nof op dat het saldo gelijk aan het bedrag word gezet.")],
+        #     [pysg.Text("Titel", font=self.font)],
+        #
+        # ])
+        #
+        # col2 = pysg.Column([
+        #     [pysg.InputText("", font=self.font, key='-AMOUNT-')],
+        #     [pysg.InputText("", font=self.font, expand_x=True, key='-TRANSACTION_TITLE-')],
+        # ])
+        #
+        # return [
+        #     [col1, pysg.VerticalSeparator(), col2],
+        #     [pysg.HorizontalSeparator()],
+        #     [pysg.Text("Beschrijving", font=self.font, expand_x=True)],
+        #     [pysg.Multiline(font=self.font, expand_x=True, expand_y=True, size=(0, 7),
+        #                     key="-TRANSACTION_DESCRIPTION-")],
+        # ]
+        # return [
+        #     [pysg.Text("Bedrag", font=self.font), pysg.Push(),
+        #      pysg.DropDown(["-", "+", "op"], "-", readonly=True, font=self.font, key="-PLUS_MINUS-"),
+        #      pysg.Text('€', font=self.font), pysg.InputText("", font=self.font, expand_x=True, key='-AMOUNT-')],
+        #     [pysg.Text("Titel", font=self.font), pysg.Push(),
+        #      pysg.InputText("", font=self.font, expand_x=True, key='-TRANSACTION_TITLE-')],
+        #     [pysg.Text("Aankoop datum", font=self.font),
+        #      pysg.Button("Selecteer", font=self.font, key="-PURCHASE_DATE_PICK_BUTTON-")],
+        #     [pysg.Text("Beschrijving", font=self.font, expand_x=True)],
+        #     [pysg.Multiline(font=self.font, expand_x=True, expand_y=True, size=(0, 7),
+        #                     key="-TRANSACTION_DESCRIPTION-")],
+        #     [pysg.Button("OK", expand_x=True, font=self.font, key="OK")]
+        # ]
 
     def update(self):
         super().update()
 
         if self.event == "OK":
             if not all(self.values.values()):
-                pysg.Popup("Vul alle velden in")
+                pysg.popup("Vul alle velden in")
 
             amount = backend.check_string_valid_float(self.values["-AMOUNT-"])
             if not backend.check_valid_saldo(saldo=amount):
@@ -267,24 +297,39 @@ class SetSaldoMenu(Camillo_GUI_framework.Gui):
 
 
 class AddUserMenu(Camillo_GUI_framework.Gui):
-    def __init__(self, window_is_popup=True, window_dimensions=(None, None), window_title: str = "Voeg Gebruiker Toe",
+    def __init__(self, window_title: str = "Voeg Gebruiker Toe",
                  *args, **kwargs):
-        super().__init__(window_is_popup=window_is_popup, window_dimensions=window_dimensions,
+        super().__init__(window_dimensions=(None, None),
                          window_title=window_title,
                          *args, **kwargs)
 
     def layout(self) -> list[list[pysg.Element]]:
+        current_date = datetime.date.today().strftime('%d-%m-%Y')
         return [
-            [pysg.Text(f"Naam:", font=self.font, expand_x=True, expand_y=True), pysg.Push(),
+            [pysg.Text(f"Naam*", font=self.font, expand_x=True, expand_y=True), pysg.Push(),
              pysg.InputText("", font=self.font, size=(15, 0), key='-ACCOUNT_NAME-')],
-            [pysg.Text(f"Saldo:", font=self.font, expand_x=True, expand_y=True), pysg.Push(),
+            [pysg.Text(f"Saldo*", font=self.font, expand_x=True, expand_y=True), pysg.Push(),
              pysg.InputText("", font=self.font, size=(15, 0), key='-SALDO-')],
+            [pysg.Text(f"Aanmelddatum", tooltip="Sinds wanneer deze leerling leerling is op DVR", font=self.font,
+                       expand_x=True, expand_y=True), pysg.Push(),
+             pysg.InputText(current_date, font=self.font, size=(15, 0), key="-SIGNUP_DATE-")],
+            [pysg.Text(f"Berekendatum",
+                       tooltip="Vanaf welk moment het kasgeld is berekend\nvoor deze leerling leerling is op DVR\n(Wanneer leeg geljik aan aanmelddatum)",
+                       font=self.font, expand_x=True, expand_y=True), pysg.Push(),
+             pysg.InputText('', font=self.font, size=(15, 0), key="-CALCULATION_START_DATE-")],
+            [pysg.HorizontalSeparator()],
+            [pysg.Text(f"* vereiste info", font=self.get_font(.7))],
             [pysg.Button("OK", expand_x=True, font=self.font, key="OK")]
         ]
 
     def update(self):
         super().update()
-        if self.event == "OK" and all(self.values.values()):
+
+        if self.event == "OK":
+            values = [key for key in self.values.keys() if self.values[key]]
+            if {"-ACCOUNT_NAME-", "-SALDO-"}.issubset(set(values)):  # voor account name en saldo zijn waardes ingevuld
+                return None
+
             username: str = self.values["-ACCOUNT_NAME-"]
             username = username.capitalize()
             saldo = self.values["-SALDO-"]
@@ -294,7 +339,7 @@ class AddUserMenu(Camillo_GUI_framework.Gui):
                 return
 
             if backend.User.get_user_exists_by_username(username):
-                pysg.Popup(f"Gebruiker met naam '{username}' bestaat al.\n"
+                pysg.popup(f"Gebruiker met naam '{username}' bestaat al.\n"
                            f"Kies een andere naam.", title="Gebruiker bestaat al", font=self.font,
                            keep_on_top=True)
                 return
@@ -339,13 +384,16 @@ class OptionsMenu(Camillo_GUI_framework.Gui):
                 return
 
             if backend.User.get_user_exists_by_username(username=new_username) is True:
-                pysg.Popup(f"Gebruiker met naam '{new_username}' bestaat al.\n"
+                pysg.popup(f"Gebruiker met naam '{new_username}' bestaat al.\n"
                            f"Kies een andere naam.", title="Gebruiker bestaat al", font=self.font)
                 self.window.un_hide()
                 return False
 
             else:
-                self.user.rename(new_username=new_username)
+                success = self.user.rename(new_username=new_username)
+                if not success:
+                    pysg.popup("Deze gebruiker was verwijderd door een andere beheerder.\n",
+                               title="Gebruiker bestaat niet meer", font=self.font)
                 # het is niet meer nodig om nu het window weer tevoorschijn te halen omdat het toch wordt gesloten
                 self.menu.back_button()
                 assert isinstance(self.menu.current_gui(), UserOverviewWindow)
@@ -368,7 +416,7 @@ class OptionsMenu(Camillo_GUI_framework.Gui):
                 self.menu.set_gui(UserSelectionWindow())
                 return True
             else:
-                pysg.Popup(f"Gebruiker met naam '{delete_user}' bestaat niet.\n"
+                pysg.popup(f"Gebruiker met naam '{delete_user}' bestaat niet.\n"
                            f"Kies een andere naam.", title="Gebruiker bestaat al", font=self.font)
                 self.window.un_hide()
                 return False
@@ -417,7 +465,7 @@ class AdminLoginMenu(Camillo_GUI_framework.Gui):
                                       no_titlebar=True, font=self.font)
                 return True
             else:
-                pysg.Popup("Gegevens komen niet overeen", title="Fout", font=self.font)
+                pysg.popup("Gegevens komen niet overeen", title="Fout", font=self.font)
 
 
 App.set_gui(gui=UserSelectionWindow())

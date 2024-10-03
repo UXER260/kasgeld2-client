@@ -7,8 +7,10 @@
 import copy
 import os
 import sys
+import time
 import traceback
 from pathlib import Path
+from typing import Union, Optional
 
 import requests
 
@@ -16,8 +18,40 @@ from models import *
 
 from imports import *
 
-with open('config.json', 'r') as f:
-    config = json.load(f)
+DEFAULT_CONFIG = """
+{
+  "request_url": "http://localhost:8000/",
+  "cookiejar_location": "cookiejar.json",
+  "window_size": [1000, 600],
+  "window_edge_margin": [15, 15],
+  "theme": "SystemDefaultForReal",
+  "font": ["Helvetica", 35],
+  "item_separation": ["-", 80],
+  "catch_handled_http_exceptions": true,
+  "catch_connectivity_error_exceptions": true,
+  "use_global_exception_handler": true
+}
+"""
+
+
+def load_config(path="config.json", default_config: Union[str, dict] = DEFAULT_CONFIG):
+    print(path)
+    try:
+        with open(path) as f:
+            conf = json.load(f)
+    except FileNotFoundError as e:
+        print(f"{e}\nRestoring {path}")
+
+        # maakt nieuwe configfile aan als het niet te vinden is
+        with open(path, "w") as f:
+            json.dump(default_config, f) if type(default_config) is dict else f.write(default_config)
+        conf = default_config if type(default_config) is dict else json.loads(default_config)
+
+    print(f"Config at `{path}` loaded.")
+    return conf
+
+
+config = load_config()
 
 
 def restart_program():
@@ -25,11 +59,14 @@ def restart_program():
     os.execv(python, [python] + sys.argv)
 
 
-def exception(exc_type, exc_value, exc_traceback):
+def global_exception_handler(exc_type, exc_value, exc_traceback):
     traceback.print_tb(exc_traceback)
+    time.sleep(.1)  # dit is hier zodat de tekst die hier onder DAADWERKELIJK ONDER de tekst hier boven wordt geprint.
     print(f"{exc_type.__name__}: {exc_value}")
 
     if exc_type is requests.exceptions.ConnectionError:
+        if config["catch_connectivity_error_exceptions"] is False:
+            return
         pysg.Popup("Verbinding niet mogelijk.\n"
                    "Zorg ervoor dat je verbonden bent met het WiFi netwerk 'De Vrije Ruimte'\n"
                    "Check je connectie en probeer het opnieuw.\n"
@@ -37,16 +74,17 @@ def exception(exc_type, exc_value, exc_traceback):
                    title="Connectie Fout", keep_on_top=True, font=config["font"])
     else:
         pysg.Popup(
-            f'⚠Er is een onverwachtse fout opgetreden. Neem AUB contact op met Camillo als dit propleem vaker voorkomt.'
-            f'\n\nType: "{exc_type.__name__}"\nOmschrijving: "{exc_value}"',
+            f"⚠Er is een onverwachtse fout opgetreden. Neem AUB contact op met Camillo als dit propleem vaker voorkomt."
+            f"\nType: {exc_type.__name__}",
             title="ONBEKENDE FOUT", text_color='red', keep_on_top=True, font=config["font"]
         )
 
-    if pysg.popup_yes_no("Opnieuw opstarten?", font=default_font(), keep_on_top=True) == "Yes":
+    if pysg.popup_yes_no("Opnieuw opstarten?", font=get_font(), keep_on_top=True) == "Yes":
         restart_program()
 
 
-sys.excepthook = exception
+if config["use_global_exception_handler"]:
+    sys.excepthook = global_exception_handler
 
 
 class Session(requests.Session):
@@ -60,7 +98,7 @@ class Session(requests.Session):
 session = Session()
 
 # laad cookies (no questions. het werkt.)
-with open(config["cookiejar_location"], 'a') as f:
+with open(config["cookiejar_location"], 'a'):
     pass
 with open(config["cookiejar_location"], 'r+') as f:
     content = f.read()
@@ -71,11 +109,18 @@ with open(config["cookiejar_location"], 'r+') as f:
     session.cookies.update(requests.utils.cookiejar_from_dict(json.loads(content)))  # load cookiejar to current session
 
 
-def default_font(scale: float = 1, font_type: str = None):
-    return " ".join((
-        config["font"][0] if not font_type else font_type,
-        str(int(config["font"][1] * scale))
-    ))
+def get_font(scale: float = 1, font: Union[tuple, list, str] = None):
+    if font is None:
+        font = config["font"]
+    elif type(font) is str:
+        font = font.split(" ")
+    font_size = float(font[1])
+    result_font = " ".join([
+        font[0],
+        str(int(font_size * scale))
+    ])
+    # print("returning font:", result_font)
+    return result_font
 
 
 def check_string_valid_float(string: str):
@@ -93,35 +138,39 @@ def check_valid_saldo(saldo: float):
     return True
 
 
+def check_not_good_status(response: requests.Response, catch_handled_http_exceptions=None):
+    if catch_handled_http_exceptions is None:
+        catch_handled_http_exceptions = config["catch_handled_http_exceptions"]
+    if catch_handled_http_exceptions:
+        try:
+            response.raise_for_status()
+        except requests.HTTPError as e:
+            print(e)
+            return False
+    else:
+        response.raise_for_status()
+
+
 class Admin:  # todo
     def __init__(self):
         pass
 
     @staticmethod
-    def check_session_valid(catch_http_exception=True):
-        response = session.get(config["request_url"])  # /
-        if catch_http_exception:
-            try:
-                response.raise_for_status()
-            except requests.HTTPError as e:
-                print(e)
-                return False
-        else:
-            response.raise_for_status()
+    def check_session_valid(catch_handled_http_exceptions=None):
+        response = session.get(config["request_url"])
+
+        if check_not_good_status(response, catch_handled_http_exceptions=catch_handled_http_exceptions) is False:
+            return False
+
         return True
 
     @staticmethod
-    def login(login_field: AdminLoginField, catch_http_exception=True):
+    def login(login_field: AdminLoginField, catch_handled_http_exceptions=None):
         response = session.post(config["request_url"] + "login",
                                 json=login_field.model_dump())
-        if catch_http_exception:
-            try:
-                response.raise_for_status()
-            except requests.HTTPError as e:
-                print(e)
-                return False
-        else:
-            response.raise_for_status()
+        if check_not_good_status(response, catch_handled_http_exceptions=catch_handled_http_exceptions) is False:
+            return False
+
         return True
 
 
@@ -138,12 +187,14 @@ class User:
         self.data.saldo = transaction_details.saldo_after_transaction
         return True
 
-    def rename(self, new_username: str) -> bool:
+    def rename(self, new_username: str) -> Optional[bool]:
         params = {"user_id": self.data.user_id, "new_username": new_username}
         response = session.put(config["request_url"] + "rename_user", params=params)
         response.raise_for_status()
         if response.status_code == 200:
             self.data.name = new_username
+        elif response.status_code == 404:
+            return False
         return True
 
     def refresh_data(self):
@@ -189,9 +240,10 @@ class User:
 
     @staticmethod
     def get_transaction_list(user_id: int):
+        response = session.get(config["request_url"] + "get_transaction_list", params={"user_id": user_id})
+        response.raise_for_status()  # fixme
         return ([
-            RawTransactionData(**transaction) for transaction in
-            session.get(config["request_url"] + "get_transaction_list", params={"user_id": user_id}).json()
+            RawTransactionData(**transaction) for transaction in response.json()
         ])
 
     @staticmethod

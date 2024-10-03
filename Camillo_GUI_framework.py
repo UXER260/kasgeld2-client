@@ -1,5 +1,7 @@
 # client/Camillo_GUI_framework
 # Zelf gemaakt framework voor user interface
+from typing import Optional, Union
+
 import requests
 
 import backend
@@ -11,6 +13,93 @@ with open('config.json', 'r') as f:
 pysg.theme(config["theme"])
 
 
+class App:
+    active = False
+    guis: list["Gui"] = []
+
+    @classmethod
+    def delete_gui(cls, index: int):
+        cls.guis[index].window.close()
+        del cls.guis[index]
+
+    @classmethod
+    def clear_all_guis(cls):
+        for _ in range(len(cls.guis)):
+            cls.delete_gui(index=0)
+
+    @classmethod
+    def current_gui(cls):
+        if len(cls.guis) > 0:
+            return cls.guis[-1]
+        return None
+
+    @classmethod
+    def previous_gui(cls):
+        return cls.guis[-2]
+
+    @classmethod
+    def set_gui(cls, gui: "Gui"):
+        """
+        :param gui: A class that inherited from the `Gui` class
+        """
+
+        cls.guis.append(gui)
+        cls.current_gui().menu = cls
+
+    @classmethod
+    def calculate_new_window_pos(cls):
+        new_pos_x = int(
+            cls.current_gui().window.current_location(more_accurate=True)[0] + cls.current_gui().window.size[
+                0] / 2 -
+            cls.previous_gui().window.size[0] / 2)
+        new_pos_y = int(
+            cls.current_gui().window.current_location(more_accurate=True)[1] + cls.current_gui().window.size[
+                1] / 2 -
+            cls.previous_gui().window.size[1] / 2)
+        return new_pos_x, new_pos_y
+
+    @classmethod
+    def back_button(cls):  # fixme verplaats naar `Gui` class
+        # gaat een gui terug in de `guis` lijst en verwijdert de vorige gui uit de list
+        # werkt alleen als oude window niet was gesloten
+        if len(cls.guis) <= 1:
+            exit_program = pysg.popup_yes_no("Afsluiten?", title="", keep_on_top=True, font=backend.get_font())
+            if exit_program == "Yes":
+                cls.active = False
+                backend.sys.exit(0)
+            return
+
+        window_root = cls.current_gui().window.TKroot
+        window_root.unbind('<FocusIn>')
+        window_root.unbind('<FocusOut>')
+
+        if not cls.current_gui().window_is_popup:
+            new_pos_x, new_pos_y = cls.calculate_new_window_pos()
+            cls.previous_gui().window.move(new_pos_x, new_pos_y)
+
+        cls.previous_gui().window.un_hide()  # un-hide voor het geval dat de window was ge-hide
+        cls.delete_gui(-1)  # wat eerst `cls.previous_gui()` was, is nu dezelfde als `cls.current_gui()`
+
+    @classmethod
+    def update(cls):
+        if not cls.guis:
+            cls.active = False
+        cls.current_gui().update()
+
+    @classmethod
+    def run(cls):
+        assert cls.current_gui is not None, "Make sure `current_gui` is properly set before running."
+        cls.active = True
+        while cls.active:
+            try:
+                cls.update()
+            except requests.ConnectionError:
+                pysg.Popup("De verbinding is niet (meer) beschikbaar.\n"
+                           "Zorg ervoor dat je verbonden bent met het WiFi netwerk 'De Vrije Ruimte'\n",
+                           "Check je connectie en probeer het opnieuw.",
+                           title="Connectie Fout", keep_on_top=True, font=backend.get_font())
+
+
 class Gui:
     default_window_init_args = {"finalize": True, "enable_close_attempted_event": True}
 
@@ -19,6 +108,7 @@ class Gui:
                  window_is_popup=False,
                  window_init_args_overwrite: dict = None):
 
+        self.focused = True
         self.window_is_popup = window_is_popup
         self.keep_on_top = keep_on_top or self.window_is_popup
         if window_init_args_overwrite is None:
@@ -31,9 +121,9 @@ class Gui:
         if window_dimensions is None:
             window_dimensions = config["window_size"]
         if font is None:
-            font = backend.default_font()
+            font = backend.get_font()
 
-        self.window: None | pysg.Window = None
+        self.window: Optional[pysg.Window] = None
         self.menu = None
 
         self.window_title = window_title
@@ -48,6 +138,12 @@ class Gui:
     def update_window_title(self, new_title: str):
         self.window.set_title(title=new_title)
         self.window_title = new_title
+
+    def get_font(self, scale: Union[float, int] = 1):
+        """
+        Zonder argumenten identiek aan `backend.get_font()`
+        """
+        return backend.get_font(scale=scale, font=self.font)
 
     def layout(self) -> list[list[pysg.Element]]:
         return [
@@ -95,7 +191,19 @@ class Gui:
                                      **self.overwritten_window_args)
 
         self.window = new_window
-        # self.event, self.values = self.window.read()
+        window_root = self.window.TKroot
+        window_root.bind('<FocusIn>', self.__on_focused_in)
+        window_root.bind('<FocusOut>', self.__on_focused_out)
+
+    def __on_focused_in(self, event):
+        if not self.focused:
+            self.focused = True
+            # print("focus", self.focused, self.__class__.__name__)
+
+    def __on_focused_out(self, event):
+        if self.focused:
+            self.focused = False
+            # print("focus", self.focused, self.__class__.__name__)
 
     def refresh(self):  # kan worden gebruikt om elementen in window te refreshen
         pass
@@ -106,83 +214,3 @@ class Gui:
             self.menu.back_button()
 
         return self.event, self.values
-
-
-class App:
-    active = False
-    guis: list[Gui] = []
-
-    @classmethod
-    def delete_gui(cls, index: int):
-        cls.guis[index].window.close()
-        del cls.guis[index]
-
-    @classmethod
-    def clear_all_guis(cls):
-        for _ in range(len(cls.guis)):
-            cls.delete_gui(index=0)
-
-    @classmethod
-    def current_gui(cls):
-        if len(cls.guis) > 0:
-            return cls.guis[-1]
-        return None
-
-    @classmethod
-    def previous_gui(cls):
-        return cls.guis[-2]
-
-    @classmethod
-    def set_gui(cls, gui: Gui):
-        """
-        :param gui: A class that inherited from the `Gui` class
-        """
-
-        cls.guis.append(gui)
-        cls.current_gui().menu = cls
-
-    @classmethod
-    def back_button(cls):
-        # gaat een gui terug in de `guis` lijst en verwijdert de vorige gui uit de list
-        # werkt alleen als oude window niet was gesloten
-        if len(cls.guis) <= 1:
-            exit_program = pysg.popup_yes_no("Afsluiten?", title="", keep_on_top=True, font=backend.default_font())
-            if exit_program == "Yes":
-                cls.active = False
-                backend.sys.exit(0)
-            return
-
-        if not cls.current_gui().window_is_popup:
-            new_pos_x = int(
-                cls.current_gui().window.current_location(more_accurate=True)[0] + cls.current_gui().window.size[
-                    0] / 2 -
-                cls.previous_gui().window.size[0] / 2)
-            new_pos_y = int(
-                cls.current_gui().window.current_location(more_accurate=True)[1] + cls.current_gui().window.size[
-                    1] / 2 -
-                cls.previous_gui().window.size[1] / 2)
-
-            cls.previous_gui().window.move(new_pos_x, new_pos_y)
-
-        cls.previous_gui().window.un_hide()  # un-hide voor het geval dat de window was ge-hide
-        cls.current_gui().window.close()
-        del cls.guis[-1]  # wat eerst `cls.previous_gui()` was, is nu dezelfde als `cls.current_gui()`
-
-    @classmethod
-    def update(cls):
-        if not cls.guis:
-            cls.active = False
-        cls.current_gui().update()
-
-    @classmethod
-    def run(cls):
-        assert cls.current_gui is not None, "Makesure `current_gui` is properly set before running."
-        cls.active = True
-        while cls.active:
-            try:
-                cls.update()
-            except requests.ConnectionError:
-                pysg.Popup("De verbinding is niet (meer) beschikbaar.\n"
-                           "Zorg ervoor dat je verbonden bent met het WiFi netwerk 'De Vrije Ruimte'\n",
-                           "Check je connectie en probeer het opnieuw.",
-                           title="Connectie Fout", keep_on_top=True, font=backend.default_font())
