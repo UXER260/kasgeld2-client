@@ -1,3 +1,29 @@
+Client & Server:
+
+
+Voeg bij saldo-verander menu datum kiezer toe. Die datum wordt dat bij de server opgeslagen in de database bij 'purchase date' (geeft aan wanneer aankoop was gemaakt) of iets dergelijks. De `transaction timestamp` (geeft aan wanneer transactie daadwerkelijk os toegevoegd) blijft behouden.
+In gebruiker overzicht tekst dat aangeeft sinds wanneer leerling/gebruiker of DVR zit en hoe lang dat is tot het hede
+
+
+REFRESH KNOP in o/a namen lijst
+
+
+Maak installer om bijv dependencies te installeren
+
+
+Voeg remote mode toe aan config.json. Verbind aan bijv 'https://kasgeld.uxer260.net/' inplaats van bijv 'http://schoolserver.local:8000/' of 'http://localhost:8000/'
+ + zorg ervoor dat directe lan verbinding ook HTTPS gebruikt
+🧐
+
+Instellingen knop in account kies menu
+met onder andere:
+- config.json configurator (moet zelf json editor maken als aparte included module in project voor alle json data typen). natuurlijk gebruiksvriendelijk met checkboxes inplaats van "true" en "false" typen enz...
+ + andere json file die verantwoordelijk is voor tooltips per json key, deze tooltips kunnen OOK gebruikt worden om aan te geven dat een bepaalde instelling veranderen pas effect heeft na herstarten van programma, bijv `use_global_exception_catcher`.
+- account overview
+ + (alleen beschikbaar wanneer ingelogd) In admin overview kan de (of 'een') opper admin (met de juiste gemachtigden) andere admins toevoegen en bepalen of ze zelf ook admins toekunnen voegen ÉN welke leerlingen de nieuwe admin kan beheren
+- uitlogknop
+
+
 Voeg inlog scherm toe
 ✅
 
@@ -5,34 +31,21 @@ Check voor updates vlak na starten van applicatie (na dat sessie is geverifieerd
 ✅
 
 Fix crash wanneer inlog sessie verloopt tijdens gebruiken
+✅
 
-In gebruiker overzicht tekst dat aangeeft sinds wanneer leerling/gebruiker of DVR zit en hoe lang dat is tot het hede
+Wanneer op leerling naam drukt in namenlijst, stuurt app drie requests. Dit kan allemaal in één.
+Voorbeeld van de drie requests als weergegeven in console client:
+REQUEST GET http://localhost:8000/get_user_exists_by_username {'params': {'username': 'Ammar'}, 'allow_redirects': True}
+REQUEST GET http://localhost:8000/get_userdata_by_username {'params': {'username': 'Ammar'}, 'allow_redirects': True}
+REQUEST GET http://localhost:8000/get_transaction_list {'params': {'user_id': 5}, 'allow_redirects': True}
+✅
 
-REFRESH KNOP in o/a namen lijst
 
-voeg remote mode toe aan config.json. Verbind aan bijv 'https://kasgeld.uxer260.net/' inplaats van bijv 'http://schoolserver.local:8000/' of 'http://localhost:8000/'
-    + zorg ervoor dat directe lan verbinding ook HTTPS gebruikt
-
-
-Instellingen knop in account kies menu
-met onder andere:
-- config.json configurator (moet zelf json editor maken als aparte included module in project voor alle json data typen). natuurlijk gebruiksvriendelijk met checkboxes inplaats van "true" en "false" typen enz...
-    + andere json file die verantwoordelijk is voor tooltips per json key, deze tooltips kunnen OOK gebruikt worden om aan te geven dat een bepaalde instelling veranderen pas effect heeft na herstarten van programma, bijv `use_global_exception_catcher`.
-- account overview
-    + (alleen beschikbaar wanneer ingelogd) In admin overview kan de (of 'een') opper admin (met de juiste gemachtigden) andere admins toevoegen en bepalen of ze zelf ook admins toekunnen voegen ÉN welke leerlingen de nieuwe admin kan beheren
-- uitlog knop
-
+'requirements.txt' file maken
+✅
 
 Filosofeer en bedenk of bij de T0DO hier onder "ongeautoriseerd/offline" OF ALLEEN "offline" moet staan.
-
+❌
 
 Optie om in ongeautoriseerd/offline mode te starten (waar zo wat elke knop is uitgeschakeld 'greyed out') maar wel de toegang tot het instellingenknopje om daar locale wijzigingen te maken
-
-
-Client & Server:
-Voeg bij saldo-verander menu datum kiezer toe. Die datum word dat bij de server opgeslagen in de database bij 'purchase date' (geeft aan wanneer aankoop was gemaakt) of iets dergelijks. De `transaction timestamp` (geeft aan wanneer transactie daadwerkelijk os toegevoegd) blijft behouden.
-
-
-Client & Server:
-'dependencies.txt' file maken
-Maak installer om bijv dependencies te installeren
+❌

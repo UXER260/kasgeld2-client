@@ -1,5 +1,6 @@
 # client/models.py
 # bevat alle pydantic models
+from typing import Optional
 
 from pydantic import BaseModel
 
@@ -18,20 +19,23 @@ class AdminSignupField(BaseModel):
 class AddUser(BaseModel):
     name: str
     saldo: float
+    signup_timestamp: Optional[int] = None
+    last_update_timestamp: Optional[int] = None
 
 
 class RawUserData(BaseModel):  # voor data direct uit database
     user_id: int
     name: str
     saldo: float
-    last_salary_update_timestamp: int
-    creation_timestamp: int
+    last_update_timestamp: int
+    signup_timestamp: int
 
 
 class TransactionField(BaseModel):
     saldo_after_transaction: float
     title: str
     description: str
+    transaction_timestamp: int = None
 
 
 class RawTransactionData(BaseModel):
@@ -40,6 +44,6 @@ class RawTransactionData(BaseModel):
     description: str
     amount: float
     saldo_after_transaction: float
+    record_creation_timestamp: int
     transaction_timestamp: int
-    transaction_made_timestamp: int
     user_id: int
