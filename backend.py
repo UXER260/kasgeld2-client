@@ -150,11 +150,6 @@ class App(Camillo_GUI_framework.App):
                 )
 
 
-
-            else:
-                cls.update()
-
-
 def load_config(path="config.json", default_config: Union[str, dict] = DEFAULT_CONFIG):
     print(path)
     try:

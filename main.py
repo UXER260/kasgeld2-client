@@ -141,11 +141,11 @@ class UserOverviewWindow(Camillo_GUI_framework.Gui):
     def generate_transaction_previews(self):
         transaction_preview_list = []
         for transaction in self.transaction_list:
-            date = datetime.date.fromtimestamp(transaction.record_creation_timestamp)
+            date = datetime.date.fromtimestamp(transaction.transaction_timestamp)
 
             # titel + datum = transaction preview
             transaction_preview_list.append(
-                f"€{transaction.amount} | {transaction.title} | {date.day}/{date.month}/{date.year}"
+                f"€{transaction.amount} | {date.day}/{date.month}/{date.year} | {transaction.title}"
             )
         return backend.reverse(transaction_preview_list)
 
