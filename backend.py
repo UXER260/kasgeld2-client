@@ -126,16 +126,20 @@ class App(Camillo_GUI_framework.App):
     def run(cls):
         cls.on_run()
         while cls.active:
+            if not config["use_global_exception_handler"]:
+                cls.update()
             try:
                 cls.update()
-            except requests.ConnectionError:
+            except requests.exceptions.ConnectionError:
                 pysg.Popup("Verbinding niet (meer) mogelijk.\n"
                            "Zorg ervoor dat je verbonden bent met het WiFi netwerk 'De Vrije Ruimte'\n\n"
                            "Check je connectie en probeer het opnieuw.", title="Geen verbinding",
                            keep_on_top=True,
                            font=config["font"])
 
-            except requests.HTTPError as e:
+            except requests.exceptions.HTTPError as e:
+                print(e.response.content)
+                print(e.response.status_code)
                 pysg.Popup(
                     f"⚠Er is een onverwachtse fout opgetreden. Neem AUB contact op met Camillo als dit propleem vaker voorkomt."
                     f"\n\nFout: {e.response.reason}"
@@ -240,7 +244,7 @@ def good_status(response: requests.Response, catch_handled_http_exceptions: Opti
     if catch_handled_http_exceptions:
         try:
             response.raise_for_status()
-        except requests.HTTPError as e:
+        except requests.exceptions.HTTPError as e:
             print("CONTENT:", response.content)
             error = e
             fout = True
@@ -280,7 +284,7 @@ class Admin:  # todo
             return good_status(session.get(config["request_url"]),
                                catch_handled_http_exceptions=catch_handled_http_exceptions,
                                restart_on_unauthorized=restart_on_unauthorized)
-        except requests.ConnectionError:
+        except requests.exceptions.ConnectionError:
             return None
 
     @staticmethod
@@ -298,6 +302,7 @@ class User:
         data = transaction_details.model_dump()
         response = session.put(config["request_url"] + "set_saldo", params={"user_id": self.data.user_id},
                                json=data)
+        print(transaction_details)
         response.raise_for_status()
 
         self.data.saldo = transaction_details.saldo_after_transaction

@@ -141,11 +141,11 @@ class UserOverviewWindow(Camillo_GUI_framework.Gui):
     def generate_transaction_previews(self):
         transaction_preview_list = []
         for transaction in self.transaction_list:
-            date = datetime.date.fromtimestamp(transaction.transaction_timestamp)
+            date = datetime.date.fromtimestamp(transaction.record_creation_timestamp).strftime("%d/%m/%Y")
 
             # titel + datum = transaction preview
             transaction_preview_list.append(
-                f"€{transaction.amount} | {date.day}/{date.month}/{date.year} | {transaction.title}"
+                f"€{transaction.amount} | {date} | {transaction.title}"
             )
         return backend.reverse(transaction_preview_list)
 
@@ -223,35 +223,28 @@ class TransActionDetailsWindow(Camillo_GUI_framework.Gui):
             App.back_button()
 
     def layout(self) -> list[list[pysg.Element]]:
-        now = datetime.datetime.now()
-        datetime_string = now.strftime('%d-%m-%Y %H:%M')
+        transaction_datetime = datetime.datetime.fromtimestamp(self.transaction.transaction_timestamp).strftime("%d-%m-%Y %H:%M")
+        purchase_datetime = datetime.datetime.fromtimestamp(self.transaction.record_creation_timestamp).strftime("%d-%m-%Y %H:%M")
         return [
             [pysg.Button(" < ", font=self.font, key="-BACK_BUTTON-")],
-            [pysg.Text(config['item_separation'][0] * config['item_separation'][1], justification="c",
-                       expand_x=True,
+            [pysg.Text(config['item_separation'][0] * config['item_separation'][1], justification="c", expand_x=True,
                        font=self.font)],
-            [pysg.Text('Datum & Tijd', font=self.get_font(scale=0.7)), pysg.Push(),
-             pysg.Text(f"{datetime_string}", font=self.get_font(scale=0.7),
-                       key="-TRANSACTION_DATE-TIME-")],
-            [pysg.Text(config['item_separation'][0] * config['item_separation'][1], justification="c",
-                       expand_x=True,
+            [pysg.Text('Aangegeven Datum & Tijd', font=self.get_font(scale=0.7)), pysg.Push(), pysg.Text(f"{transaction_datetime}", font=self.get_font(scale=0.7), key="-TRANSACTION_DATE-TIME-")],
+            [pysg.Text('Aangemaakt Datum & Tijd', font=self.get_font(scale=0.7)), pysg.Push(), pysg.Text(f"{purchase_datetime}", font=self.get_font(scale=0.7), key="-TRANSACTION_DATE-TIME-")],
+            [pysg.Text(config['item_separation'][0] * config['item_separation'][1], justification="c", expand_x=True,
                        font=self.font)],
             [pysg.Text('Bedrag', font=self.get_font(scale=0.7)), pysg.Push(),
-             pysg.Text(self.transaction.amount, font=self.get_font(scale=0.7), key="-AMOUNT-")],
-            [pysg.Text(config['item_separation'][0] * config['item_separation'][1], justification="c",
-                       expand_x=True,
+             pysg.Text(f"€{('+' if self.transaction.amount > 0 else '')}{self.transaction.amount}", font=self.get_font(scale=0.7), key="-AMOUNT-")],
+            [pysg.Text(config['item_separation'][0] * config['item_separation'][1], justification="c", expand_x=True,
                        font=self.font)],
             [pysg.Text('Saldo Na Transactie', font=self.get_font(scale=0.7)), pysg.Push(),
              pysg.Text(self.transaction.saldo_after_transaction, font=self.get_font(scale=0.7),
                        key="-SALDO_AFTER_TRANSACTION-")],
-            [pysg.Text(config['item_separation'][0] * config['item_separation'][1], justification="c",
-                       expand_x=True,
+            [pysg.Text(config['item_separation'][0] * config['item_separation'][1], justification="c", expand_x=True,
                        font=self.font)],
             [pysg.Text('Beschrijving', font=self.get_font(scale=0.7), justification="c", expand_x=True, )],
-            [pysg.Multiline(self.transaction.description, font=self.get_font(scale=0.7), disabled=True,
-                            expand_x=True,
-                            size=(0, 7),
-                            key="-TRANSACTION_DESCRIPTION-")],
+            [pysg.Multiline(self.transaction.description, font=self.get_font(scale=0.7), disabled=True, expand_x=True,
+                            size=(0, 7), key="-TRANSACTION_DESCRIPTION-")],
         ]
 
 
@@ -265,7 +258,6 @@ class SetSaldoMenu(Camillo_GUI_framework.Gui):
                          window_dimensions=window_dimensions, *args, **kwargs)
 
     def layout(self) -> list[list[pysg.Element]]:
-        current_date = datetime.date.today().strftime('%d-%m-%Y')
         return [
             [pysg.Text(f"Bedrag*", font=self.font, expand_x=True, expand_y=True), pysg.Push(),
              pysg.DropDown(["-", "+", "op"], "-",
@@ -277,7 +269,7 @@ class SetSaldoMenu(Camillo_GUI_framework.Gui):
              pysg.InputText("", font=self.font, size=(15, 0), key="-TRANSACTION_TITLE-")],
             [pysg.Text(f"Aankoop datum", tooltip="Op welke datum deze aankoop is gedaan (JJJJ-MM-DD)", font=self.font,
                        expand_x=True, expand_y=True), pysg.Push(),
-             pysg.InputText(current_date, font=self.font, size=(15, 0), key="-PURCHASE_DATE-")],
+             pysg.InputText('', font=self.font, size=(15, 0), key="-PURCHASE_DATE-")],
             [pysg.Text(f"Beschrijving*", tooltip="De beschrijving van van deze aankoop", font=self.font, expand_x=True,
                        expand_y=True)],
             [pysg.Multiline('', font=self.font, expand_x=True, expand_y=True, size=(0, 7),
@@ -287,49 +279,15 @@ class SetSaldoMenu(Camillo_GUI_framework.Gui):
             [pysg.Button("OK", expand_x=True, font=self.font, key="OK")]
         ]
 
-        # return [
-        #     [pysg.Text("Bedrag", font=self.font), pysg.Push(),
-        #      pysg.DropDown(["-", "+", "op"], "-", readonly=True, font=self.font, key="-PLUS_MINUS-"),
-        #      pysg.Text('€', font=self.font), pysg.InputText("", font=self.font, expand_x=True, key='-AMOUNT-')],
-        #     [pysg.Text("Titel", font=self.font), pysg.Push(),
-        #      pysg.InputText("", font=self.font, expand_x=True, key='-TRANSACTION_TITLE-')],
-        #     [pysg.Text("Aankoop datum", font=self.font),
-        #      pysg.Button("Selecteer", font=self.font, key="-PURCHASE_DATE_PICK_BUTTON-")],
-        #     [pysg.Text("Beschrijving", font=self.font, expand_x=True)],
-        #     [pysg.Multiline(font=self.font, expand_x=True, expand_y=True, size=(0, 7),
-        #                     key="-TRANSACTION_DESCRIPTION-")],
-        #     [pysg.Button("OK", expand_x=True, font=self.font, key="OK")]
-        # ]
-        #
-        # col1 = pysg.Column([
-        #     [pysg.Text("Bedrag", font=self.font),
-        #      pysg.DropDown(["-", "+", "op"], "-", readonly=True, font=self.font, key="-PLUS_MINUS-",
-        #                    tooltip="Of ingevuld bedrag van saldo zal worden afgetrokken '-'(standaard),\nToegevoegd '+',\nof op dat het saldo gelijk aan het bedrag word gezet.")],
-        #     [pysg.Text("Titel", font=self.font)],
-        #
-        # ])
-        #
-        # col2 = pysg.Column([
-        #     [pysg.InputText("", font=self.font, key='-AMOUNT-')],
-        #     [pysg.InputText("", font=self.font, expand_x=True, key='-TRANSACTION_TITLE-')],
-        # ])
-        #
-        # return [
-        #     [col1, pysg.VerticalSeparator(), col2],
-        #     [pysg.HorizontalSeparator()],
-        #     [pysg.Text("Beschrijving", font=self.font, expand_x=True)],
-        #     [pysg.Multiline(font=self.font, expand_x=True, expand_y=True, size=(0, 7),
-        #                     key="-TRANSACTION_DESCRIPTION-")],
-        # ]
-
     def update(self):  # todo match toegevoegde input boxes
         super().update()
 
         if self.event == "OK":
-            if not all(self.values.values()):
+            values = [key for key in self.values.keys() if self.values[key]]
+            if not {"-TRANSACTION_DESCRIPTION-", "-AMOUNT-", "-PLUS_MINUS-"}.issubset(set(values)):
                 pysg.popup("Vul alle velden in", title="ERROR",
                            font=self.font, keep_on_top=True)
-                return
+                return None
 
             amount = backend.check_string_valid_float(self.values["-AMOUNT-"])
             if not backend.check_valid_saldo(amount):
@@ -345,13 +303,16 @@ class SetSaldoMenu(Camillo_GUI_framework.Gui):
 
             transaction_title = self.values["-TRANSACTION_TITLE-"]
             transaction_description = self.values["-TRANSACTION_DESCRIPTION-"]
-            purchase_date = (self.values["-PURCHASE_DATE-"])
+
+            purchase_timestamp = None
+            if self.values["-PURCHASE_DATE-"]:
+                purchase_timestamp = datetime.datetime.strptime(self.values["-PURCHASE_DATE-"], "%d-%m-%Y").timestamp()
 
             transaction_details = backend.TransactionField(
                 saldo_after_transaction=saldo_after_transaction,
                 title=transaction_title,
                 description=transaction_description,
-                purchase_date=purchase_date,
+                transaction_timestamp=purchase_timestamp
             )
 
             self.user.set_saldo(transaction_details=transaction_details)
@@ -387,7 +348,7 @@ class AddUserMenu(Camillo_GUI_framework.Gui):
              pysg.InputText(current_date, font=self.font, size=(15, 0), key="-SIGNUP_DATE-")],
             [pysg.Text(f"Berekendatum",
                        tooltip="Vanaf welk moment het kasgeld is berekend.\n"
-                               "(Wanneer leeg gelijk aan aanmelddatum)",
+                               "(Wanneer leeg gelijk aan huidige datum)",
                        font=self.font, expand_x=True, expand_y=True), pysg.Push(),
              pysg.InputText('', font=self.font, size=(15, 0), key="-CALCULATION_START_DATE-")],
             [pysg.HorizontalSeparator()],
@@ -419,7 +380,8 @@ class AddUserMenu(Camillo_GUI_framework.Gui):
 
             calculation_start_timestamp = None
             if self.values["-CALCULATION_START_DATE-"]:
-                calculation_start_timestamp = datetime.datetime.strptime(self.values["-CALCULATION_START_DATE-"], "%d-%m-%Y").timestamp()
+                calculation_start_timestamp = datetime.datetime.strptime(self.values["-CALCULATION_START_DATE-"],
+                                                                         "%d-%m-%Y").timestamp()
 
             user = backend.AddUser(
                 name=username,
