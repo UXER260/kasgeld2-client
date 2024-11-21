@@ -1,14 +1,19 @@
 Client & Server:
 
-
-Voeg bij saldo-verander menu datum kiezer toe. Die datum wordt dat bij de server opgeslagen in de database bij 'purchase date' (geeft aan wanneer aankoop was gemaakt) of iets dergelijks. De `transaction timestamp` (geeft aan wanneer transactie daadwerkelijk os toegevoegd) blijft behouden.
-In gebruiker overzicht tekst dat aangeeft sinds wanneer leerling/gebruiker of DVR zit en hoe lang dat is tot het hede
+Massa transactie modi voor bijv selectie leerlingen +/- bedrag of selectie leerlingen die samen een gelijk gedeelte mee betalen aan één ding.
 
 
-REFRESH KNOP in o/a namen lijst
+type transactie
 
 
-Maak installer om bijv dependencies te installeren
+Bij elke vorm van transactie een melding die aangeeft wanneer de leerling weer een positief saldo zal hebben indien het huidige saldo na een transactie negatief zal zijn.
+Dit wordt berekend met behulp van een nieuwe functie aan de server kant die gebruik maakt van (een gemodificeerde versie van) de `manage_monthly_saldo_updates()` functie.
+|
+|
+Bij gebruikersoverzicht (met die in transactielijst) een tijdsbalk waar je heen & terug kan spoelen en
+
+
+REFRESH KNOP in o/a namen lijst.
 
 
 Voeg remote mode toe aan config.json. Verbind aan bijv 'https://kasgeld.uxer260.net/' inplaats van bijv 'http://schoolserver.local:8000/' of 'http://localhost:8000/'
@@ -44,8 +49,15 @@ REQUEST GET http://localhost:8000/get_transaction_list {'params': {'user_id': 5}
 'requirements.txt' file maken
 ✅
 
+Voeg bij saldo-verander menu datum kiezer toe. Die datum wordt dan bij de server opgeslagen in de database bij 'purchase date' (geeft aan wanneer aankoop was gemaakt) of iets dergelijks. De `transaction timestamp` (geeft aan wanneer transactie daadwerkelijk is toegevoegd) blijft behouden.
+In gebruiker overzicht tekst dat aangeeft sinds wanneer leerling/gebruiker of DVR zit en hoe lang dat is tot het hede
+✅
+
 Filosofeer en bedenk of bij de T0DO hier onder "ongeautoriseerd/offline" OF ALLEEN "offline" moet staan.
 ❌
 
 Optie om in ongeautoriseerd/offline mode te starten (waar zo wat elke knop is uitgeschakeld 'greyed out') maar wel de toegang tot het instellingenknopje om daar locale wijzigingen te maken
 ❌
+
+Maak installer om bijv dependencies te installeren
+❌ (verbeterd idee: een ge-compiled app/executable met de installer ingebouwd)

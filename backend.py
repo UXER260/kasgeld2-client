@@ -6,34 +6,16 @@ from __future__ import annotations
 
 
 import copy
-import os
-import sys
-import time
-import traceback
 from pathlib import Path
-from typing import Union, Optional
+from typing import Union
 from unidecode import unidecode
-
+import PySimpleGUI as pysg
+import Camillo_GUI_framework
 import requests
 
 from models import *
 
 from imports import *
-
-DEFAULT_CONFIG = """
-{
-  "request_url": "http://localhost:8000/",
-  "cookiejar_location": "cookiejar.json",
-  "window_size": [1000, 600],
-  "window_edge_margin": [15, 15],
-  "theme": "SystemDefaultForReal",
-  "font": ["Helvetica", 35],
-  "item_separation": ["-", 80],
-  "catch_handled_http_exceptions": true,
-  "catch_connectivity_error_exceptions": true,
-  "use_global_exception_handler": true
-}
-"""
 
 
 class AdminLoginMenu(Camillo_GUI_framework.Gui):
@@ -128,50 +110,31 @@ class App(Camillo_GUI_framework.App):
         while cls.active:
             if not config["use_global_exception_handler"]:
                 cls.update()
-            try:
-                cls.update()
-            except requests.exceptions.ConnectionError:
-                pysg.Popup("Verbinding niet (meer) mogelijk.\n"
-                           "Zorg ervoor dat je verbonden bent met het WiFi netwerk 'De Vrije Ruimte'\n\n"
-                           "Check je connectie en probeer het opnieuw.", title="Geen verbinding",
-                           keep_on_top=True,
-                           font=config["font"])
+            else:
+                try:
+                    cls.update()
+                except requests.exceptions.ConnectionError:
+                    pysg.Popup("Verbinding niet (meer) mogelijk.\n"
+                               "Zorg ervoor dat je verbonden bent met het WiFi netwerk 'De Vrije Ruimte'\n\n"
+                               "Check je connectie en probeer het opnieuw.", title="Geen verbinding",
+                               keep_on_top=True,
+                               font=config["font"])
 
-            except requests.exceptions.HTTPError as e:
-                print(e.response.content)
-                print(e.response.status_code)
-                pysg.Popup(
-                    f"⚠Er is een onverwachtse fout opgetreden. Neem AUB contact op met Camillo als dit propleem vaker voorkomt."
-                    f"\n\nFout: {e.response.reason}"
-                    f"\nType: {e.__class__.__name__}",
-                    title=f"ONBEKENDE FOUT", text_color="red", keep_on_top=True, font=config["font"]
-                )
-            except Exception as e:
-                pysg.Popup(
-                    f"⚠Er is een onverwachtse fout opgetreden. Neem AUB contact op met Camillo als dit propleem vaker voorkomt."
-                    f"\n\nType: {e.__class__.__name__}",
-                    title=f"ONBEKENDE FOUT", text_color="red", keep_on_top=True, font=config["font"]
-                )
-
-
-def load_config(path="config.json", default_config: Union[str, dict] = DEFAULT_CONFIG):
-    print(path)
-    try:
-        with open(path) as f:
-            conf = json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError) as e:
-        print(f"{e}\nRestoring {path}")
-
-        # maakt nieuwe configfile aan als het niet te vinden is
-        with open(path, "w") as f:
-            json.dump(default_config, f) if type(default_config) is dict else f.write(default_config)
-        conf = default_config if type(default_config) is dict else json.loads(default_config)
-
-    print(f"Config at `{path}` loaded.")
-    return conf
-
-
-config = load_config()
+                except requests.exceptions.HTTPError as e:
+                    print(e.response.content)
+                    print(e.response.status_code)
+                    pysg.Popup(
+                        f"⚠Er is een onverwachtse fout opgetreden. Neem AUB contact op met Camillo als dit propleem vaker voorkomt."
+                        f"\n\nFout: {e.response.reason}"
+                        f"\nType: {e.__class__.__name__}",
+                        title=f"ONBEKENDE FOUT", text_color="red", keep_on_top=True, font=config["font"]
+                    )
+                except Exception as e:
+                    pysg.Popup(
+                        f"⚠Er is een onverwachtse fout opgetreden. Neem AUB contact op met Camillo als dit propleem vaker voorkomt."
+                        f"\n\nType: {e.__class__.__name__}",
+                        title=f"ONBEKENDE FOUT", text_color="red", keep_on_top=True, font=config["font"]
+                    )
 
 
 def restart_program():
@@ -300,13 +263,38 @@ class User:
 
     def set_saldo(self, transaction_details: TransactionField):
         data = transaction_details.model_dump()
-        response = session.put(config["request_url"] + "set_saldo", params={"user_id": self.data.user_id},
+        response = session.post(config["request_url"] + "add_transaction", params={"user_id": self.data.user_id},
                                json=data)
         print(transaction_details)
         response.raise_for_status()
 
-        self.data.saldo = transaction_details.saldo_after_transaction
+        self.fetch_and_update_saldo()
         return True
+
+    def fetch_saldo(self, catch_handled_http_exceptions=None) -> str | None:
+        params = {"user_id": self.data.user_id}
+        response = session.get(config["request_url"] + "get_saldo", params=params)
+        print(response.content)
+        # if good_status(response, catch_handled_http_exceptions=catch_handled_http_exceptions) is not True:
+        #     return None
+
+        return response.json()
+
+    def fetch_saldo_after_transaction(self, transaction_id: int, catch_handled_http_exceptions=None) -> str | None:
+        params = {"user_id": self.data.user_id, "transaction_id": transaction_id}
+        response = session.get(config["request_url"] + "get_saldo_after_transaction", params=params)
+        if good_status(response, catch_handled_http_exceptions=catch_handled_http_exceptions) is not True:
+            return None
+
+        return response.json()
+
+    def fetch_and_update_saldo(self):
+        new_saldo = self.fetch_saldo()
+        if new_saldo is None:
+            return None
+
+        self.data.saldo = new_saldo
+        return self.data.saldo
 
     def rename(self, new_username: str, catch_handled_http_exceptions=None) -> Optional[bool]:
         params = {"user_id": self.data.user_id, "new_username": new_username}
@@ -336,7 +324,7 @@ class User:
         return session.get(config["request_url"] + "get_user_exists_by_id", params={"user_id": user_id}).json()
 
     @staticmethod
-    def add_user(userdata: AddUser, catch_handled_http_exceptions=None) -> bool | None:
+    def add_user(userdata: UserSignupData, catch_handled_http_exceptions=None) -> bool | None:
         print(userdata.model_dump())
         response = session.post(config["request_url"] + "add_user", json=userdata.model_dump())
         status = good_status(response, catch_handled_http_exceptions=catch_handled_http_exceptions)
@@ -390,11 +378,11 @@ class User:
             return False
         return cls.generate_transaction_object_list(response.json())
 
-    @staticmethod
-    def generate_transaction(current_money: float, transaction_details: TransactionField):
-        params = {"current_money": current_money}
-        return session.post(config["request_url"] + "generate_transaction",
-                            params=params, json=transaction_details.model_dump()).json()
+    # @staticmethod
+    # def generate_transaction(current_money: float, transaction_details: TransactionField):
+    #     params = {"current_money": current_money}
+    #     return session.post(config["request_url"] + "generate_transaction",
+    #                         params=params, json=transaction_details.model_dump()).json()
 
     @staticmethod
     def delete_user(user_id: int, catch_handled_http_exceptions=None) -> bool:

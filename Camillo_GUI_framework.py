@@ -3,14 +3,10 @@
 import os
 import sys
 from typing import Optional, Union
-import requests
 
 import backend
-from imports import *
-
-with open('config.json', 'r') as f:
-    config = json.load(f)
-
+import PySimpleGUI as pysg
+from imports import config
 pysg.theme(config["theme"])
 
 
@@ -160,7 +156,6 @@ class App:
         cls.on_run()
         while cls.active is True:
             cls.update()
-
 
 
 class Gui:

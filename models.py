@@ -18,7 +18,7 @@ class AdminSignupField(BaseModel):
     password: str
 
 
-class AddUser(BaseModel):
+class UserSignupData(BaseModel):
     name: str
     saldo: float
     signup_timestamp: Optional[int] = None
@@ -34,7 +34,7 @@ class RawUserData(BaseModel):  # voor data direct uit database
 
 
 class TransactionField(BaseModel):
-    saldo_after_transaction: float
+    amount: float
     title: str
     description: str
     transaction_timestamp: int | None = None
@@ -45,7 +45,6 @@ class RawTransactionData(BaseModel):
     title: str
     description: str
     amount: float
-    saldo_after_transaction: float
     record_creation_timestamp: int
     transaction_timestamp: int
     user_id: int
