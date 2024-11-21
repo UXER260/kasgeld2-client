@@ -78,7 +78,6 @@ class UserSelectionWindow(Camillo_GUI_framework.Gui):
 
         elif self.event == "-ADD_USER_BUTTON-":
             search_bar_field = self.values["-SEARCH_BAR_FIELD-"]
-            print(search_bar_field, self.namelist)
             filled_in_username = search_bar_field if search_bar_field and not self.window[
                 "-namelist-"].get_list_values() else None
             App.set_gui(gui=AddUserMenu(filled_in_username=filled_in_username))
@@ -333,6 +332,9 @@ class SetSaldoMenu(Camillo_GUI_framework.Gui):
                 return None
 
             amount = backend.check_string_valid_float(self.values["-AMOUNT-"])
+            if amount is False:
+                return
+
             if not backend.check_valid_saldo(amount):
                 return
 
@@ -371,7 +373,6 @@ class AddUserMenu(Camillo_GUI_framework.Gui):
     def __init__(self, window_title: str = "Voeg Gebruiker Toe",
                  filled_in_username=None, window_dimensions=(None, None),
                  *args, **kwargs):
-        print(window_dimensions)
         if filled_in_username is None:
             filled_in_username = ''
         self.filled_in_username = filled_in_username
@@ -411,10 +412,11 @@ class AddUserMenu(Camillo_GUI_framework.Gui):
 
             username: str = self.values["-ACCOUNT_NAME-"]
             username = username.capitalize()
-            print("SALDO:", self.values["-SALDO-"])
-            saldo = 0 if not self.values["-SALDO-"] or self.values["-SALDO-"] == '0' else self.values["-SALDO-"]
-            if not backend.check_string_valid_float(saldo):
+            saldo = '0' if not self.values["-SALDO-"] or self.values["-SALDO-"] == '0' else self.values["-SALDO-"]
+            saldo = backend.check_string_valid_float(saldo)
+            if saldo is False:
                 return
+
             if not backend.check_valid_saldo(saldo):
                 return
 

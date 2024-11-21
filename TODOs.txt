@@ -1,16 +1,16 @@
 Client & Server:
 
-Massa transactie modi voor bijv selectie leerlingen +/- bedrag of selectie leerlingen die samen een gelijk gedeelte mee betalen aan één ding.
+Massa transactie modi voor bijv selectie leerlingen +/- bedrag toevoegen of selectie leerlingen die samen een gelijk gedeelte mee betalen aan één ding.
 
 
-type transactie
+type transacties, bijvoorbeeld: automatische, normale handmatige, massa (groep betaling)
 
 
 Bij elke vorm van transactie een melding die aangeeft wanneer de leerling weer een positief saldo zal hebben indien het huidige saldo na een transactie negatief zal zijn.
 Dit wordt berekend met behulp van een nieuwe functie aan de server kant die gebruik maakt van (een gemodificeerde versie van) de `manage_monthly_saldo_updates()` functie.
 |
 |
-Bij gebruikersoverzicht (met die in transactielijst) een tijdsbalk waar je heen & terug kan spoelen en
+Bij gebruikersoverzicht (met die in transactielijst) een tijdsbalk waar je heen & terug kan spoelen als soort historie en kan terug rollen naar bepaalt moment
 
 
 REFRESH KNOP in o/a namen lijst.

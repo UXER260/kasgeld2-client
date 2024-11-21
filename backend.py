@@ -144,7 +144,7 @@ def restart_program():
 
 class Session(requests.Session):
     def request(self, *args, **kwargs):
-        print("REQUEST", *args, kwargs)
+        print("REQUEST", *args)
         response = super().request(*args, **kwargs)
         cookies = requests.utils.dict_from_cookiejar(session.cookies)  # turn cookiejar into dict
         Path(config["cookiejar_location"]).write_text(json.dumps(cookies))  # save them to file as JSON
@@ -355,10 +355,7 @@ class User:
         if not status:
             return status
 
-        print("AAaaa", response.content)
         response_json = response.json()
-        print("RESPONSE:", response_json)
-
         return {
             "userdata": cls(data=RawUserData(**response_json["raw_userdata"])),
             "transaction_list": cls.generate_transaction_object_list(response_json["transaction_list"])
