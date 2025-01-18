@@ -1,29 +1,32 @@
+Identificatie van computers waar programma op draait met MAC-adres (voor bijv. crash reports, tracking van gebruik, etc.)
+
+
 Client & Server:
 
-Massa transactie modi voor bijv selectie leerlingen +/- bedrag toevoegen of selectie leerlingen die samen een gelijk gedeelte mee betalen aan één ding.
+Massa transactie modi voor bijv. selectie leerlingen +/- bedrag toevoegen of selectie leerlingen die samen een gelijk gedeelte mee betalen aan één ding.
 
 
-type transacties, bijvoorbeeld: automatische, normale handmatige, massa (groep betaling)
+Type transacties, bijvoorbeeld: automatische, normale handmatige, massa (groep betaling)
 
 
 Bij elke vorm van transactie een melding die aangeeft wanneer de leerling weer een positief saldo zal hebben indien het huidige saldo na een transactie negatief zal zijn.
 Dit wordt berekend met behulp van een nieuwe functie aan de server kant die gebruik maakt van (een gemodificeerde versie van) de `manage_monthly_saldo_updates()` functie.
 |
 |
-Bij gebruikersoverzicht (met die in transactielijst) een tijdsbalk waar je heen & terug kan spoelen als soort historie en kan terug rollen naar bepaalt moment
+Bij gebruikersoverzicht (met die in transactielijst) een tijdbalk waar je heen & terug kan spoelen als soort historie en kan terug rollen naar bepaald moment
 
 
 REFRESH KNOP in o/a namen lijst.
 
 
-Voeg remote mode toe aan config.json. Verbind aan bijv 'https://kasgeld.uxer260.net/' inplaats van bijv 'http://schoolserver.local:8000/' of 'http://localhost:8000/'
+Voeg remote mode toe aan config.json. Verbind aan bijv. 'https://kasgeld.uxer260.net/' inplaats van bijv. 'http://schoolserver.local:8000/' of 'http://localhost:8000/'
  + zorg ervoor dat directe lan verbinding ook HTTPS gebruikt
 🧐
 
 Instellingen knop in account kies menu
 met onder andere:
-- config.json configurator (moet zelf json editor maken als aparte included module in project voor alle json data typen). natuurlijk gebruiksvriendelijk met checkboxes inplaats van "true" en "false" typen enz...
- + andere json file die verantwoordelijk is voor tooltips per json key, deze tooltips kunnen OOK gebruikt worden om aan te geven dat een bepaalde instelling veranderen pas effect heeft na herstarten van programma, bijv `use_global_exception_catcher`.
+- (client & server) config.json configurator (moet zelf json editor maken als aparte included module in project voor alle json data typen). Natuurlijk gebruiksvriendelijk met checkboxes in plaats van "true" en "false" typen enz...
+ + andere json file die verantwoordelijk is voor tooltips per json key, deze tooltips kunnen OOK gebruikt worden om aan te geven dat een bepaalde instelling veranderen pas effect heeft na herstarten van programma, bijv. `use_global_exception_catcher`.
 - account overview
  + (alleen beschikbaar wanneer ingelogd) In admin overview kan de (of 'een') opper admin (met de juiste gemachtigden) andere admins toevoegen en bepalen of ze zelf ook admins toekunnen voegen ÉN welke leerlingen de nieuwe admin kan beheren
 - uitlogknop
@@ -59,5 +62,5 @@ Filosofeer en bedenk of bij de T0DO hier onder "ongeautoriseerd/offline" OF ALLE
 Optie om in ongeautoriseerd/offline mode te starten (waar zo wat elke knop is uitgeschakeld 'greyed out') maar wel de toegang tot het instellingenknopje om daar locale wijzigingen te maken
 ❌
 
-Maak installer om bijv dependencies te installeren
+Maak installer om bijv. dependencies te installeren
 ❌ (verbeterd idee: een ge-compiled app/executable met de installer ingebouwd)

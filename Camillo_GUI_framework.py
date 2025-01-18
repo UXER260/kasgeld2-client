@@ -7,6 +7,7 @@ from typing import Optional, Union
 import backend
 import PySimpleGUI as pysg
 from imports import config
+
 pysg.theme(config["theme"])
 
 
@@ -146,7 +147,9 @@ class App:
 
     @classmethod
     def on_run(cls):
-        assert cls.current_gui is not None, "Make sure `current_gui` is properly set before running."
+        if not cls.start_gui:
+            assert cls.current_gui() is not None, \
+                "Make sure either `App.current_gui` or `App.start_gui` is properly set before running."
         if cls.current_gui() is None:
             cls.set_start_gui()
         cls.active = True

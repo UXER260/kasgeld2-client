@@ -6,8 +6,14 @@ from __future__ import annotations
 
 
 import copy
+import os
+import sys
+import time
+import traceback
+import types
 from pathlib import Path
-from typing import Union
+from pprint import pprint
+from typing import Union, Tuple
 from unidecode import unidecode
 import PySimpleGUI as pysg
 import Camillo_GUI_framework
@@ -56,9 +62,9 @@ class AdminLoginMenu(Camillo_GUI_framework.Gui):
             login_field = AdminLoginField(email=self.values["-EMAIL-"], password=self.values["-PASSWORD-"])
             succes = Admin.login(login_field=login_field)
             if not succes:
-                # pysg.popup_quick("Gegevens komen niet overeen", auto_close_duration=1, non_blocking=True,
-                #                  no_titlebar=True, background_color="red", title="Fout", font=self.font,
-                #                  keep_on_top=True)
+                pysg.popup_quick("Gegevens komen niet overeen", auto_close_duration=1, non_blocking=True,
+                                 no_titlebar=True, background_color="red", title="Fout", font=self.font,
+                                 keep_on_top=True)
                 return False
             else:
                 # App.back_button()
@@ -101,40 +107,66 @@ class App(Camillo_GUI_framework.App):
             if cls.login_prompt(restart_on_success=False) is False:
                 return False
 
-        # als het None is dan niet inloggen maar direct naar kies menu waar gebruiker word verteld dat geen connectie
+        # als het None is dan niet inloggen, maar direct naar kies menu waar gebruiker word verteld dat geen connectie
         super().on_run()
+
+    @classmethod
+    def error_handler(cls, error: Exception):
+        if not isinstance(error, Exception):
+            return
+
+        if isinstance(error, requests.exceptions.ConnectionError):
+            pysg.Popup(
+                "Verbinding niet (meer) beschikbaar.\n"
+                "Zorg ervoor dat je verbonden bent met het WiFi netwerk 'De Vrije Ruimte'\n\n"
+                "Check je connectie en probeer het opnieuw.", title="Geen verbinding""",
+                keep_on_top=True,
+                font=config["font"])
+            return
+
+        System.make_and_send_crash_report(exception_info=sys.exc_info())
+
+        if isinstance(error, requests.exceptions.HTTPError):
+            print(error.response.content)
+            print(error.response.status_code)
+            status_code = error.response.status_code
+
+            error_specification = "in de server" if status_code == 500 else "bij het communiceren met de server"
+            error_title = "Fout in server bij handeling" if status_code == 500 else \
+                "Communicatiefout met server bij handeling"
+
+            pysg.Popup(
+                f"⚠Een onverwachte fout trad op {error_specification}, waardoor het verzoek niet kon worden voldaan.\n"
+                "Neem AUB contact op met Camillo.\n\n"
+                f"Fout: {error.response.reason}\n"
+                f"Type: {error.__class__.__name__}""",
+                title=error_title,
+                text_color="red", keep_on_top=True,
+                font=config["font"]
+            )
+
+        else:
+            pysg.Popup(
+                f"⚠Er is een programmafout opgetreden.\n"
+                f"Neem contact op met Camillo\n\n"
+                f"Type: {error.__class__.__name__}\n"
+                f"Beschrijving:\n{str(error)}",
+                title=f"Onbekende programmafout", text_color="red", keep_on_top=True, font=config["font"]
+            )
 
     @classmethod
     def run(cls):
         cls.on_run()
+
         while cls.active:
             if not config["use_global_exception_handler"]:
                 cls.update()
-            else:
-                try:
-                    cls.update()
-                except requests.exceptions.ConnectionError:
-                    pysg.Popup("Verbinding niet (meer) mogelijk.\n"
-                               "Zorg ervoor dat je verbonden bent met het WiFi netwerk 'De Vrije Ruimte'\n\n"
-                               "Check je connectie en probeer het opnieuw.", title="Geen verbinding",
-                               keep_on_top=True,
-                               font=config["font"])
+                continue
 
-                except requests.exceptions.HTTPError as e:
-                    print(e.response.content)
-                    print(e.response.status_code)
-                    pysg.Popup(
-                        f"⚠Er is een onverwachtse fout opgetreden. Neem AUB contact op met Camillo als dit propleem vaker voorkomt."
-                        f"\n\nFout: {e.response.reason}"
-                        f"\nType: {e.__class__.__name__}",
-                        title=f"ONBEKENDE FOUT", text_color="red", keep_on_top=True, font=config["font"]
-                    )
-                except Exception as e:
-                    pysg.Popup(
-                        f"⚠Er is een onverwachtse fout opgetreden. Neem AUB contact op met Camillo als dit propleem vaker voorkomt."
-                        f"\n\nType: {e.__class__.__name__}",
-                        title=f"ONBEKENDE FOUT", text_color="red", keep_on_top=True, font=config["font"]
-                    )
+            try:
+                cls.update()
+            except Exception as e:
+                cls.error_handler(e)
 
 
 def restart_program():
@@ -144,7 +176,7 @@ def restart_program():
 
 class Session(requests.Session):
     def request(self, *args, **kwargs):
-        print("REQUEST", *args)
+        # print("REQUEST", *args)
         response = super().request(*args, **kwargs)
         cookies = requests.utils.dict_from_cookiejar(session.cookies)  # turn cookiejar into dict
         Path(config["cookiejar_location"]).write_text(json.dumps(cookies))  # save them to file as JSON
@@ -153,7 +185,7 @@ class Session(requests.Session):
 
 session = Session()
 
-cookie_jar = load_config(path=config["cookiejar_location"], default_config="{}")
+cookie_jar = load_config(path=config["cookiejar_location"], except_decode_error=True, fallback_restore="{}")
 session.cookies.update(requests.utils.cookiejar_from_dict(cookie_jar))  # load cookiejar to current session
 
 
@@ -264,7 +296,7 @@ class User:
     def set_saldo(self, transaction_details: TransactionField):
         data = transaction_details.model_dump()
         response = session.post(config["request_url"] + "add_transaction", params={"user_id": self.data.user_id},
-                               json=data)
+                                json=data)
         print(transaction_details)
         response.raise_for_status()
 
@@ -274,19 +306,15 @@ class User:
     def fetch_saldo(self, catch_handled_http_exceptions=None) -> str | None:
         params = {"user_id": self.data.user_id}
         response = session.get(config["request_url"] + "get_saldo", params=params)
-        print(response.content)
-        # if good_status(response, catch_handled_http_exceptions=catch_handled_http_exceptions) is not True:
-        #     return None
+        response.raise_for_status()
 
         return response.json()
 
-    def fetch_saldo_after_transaction(self, transaction_id: int, catch_handled_http_exceptions=None) -> str | None:
+    def fetch_saldo_after_transaction(self, transaction_id: int, catch_handled_http_exceptions=None):
         params = {"user_id": self.data.user_id, "transaction_id": transaction_id}
         response = session.get(config["request_url"] + "get_saldo_after_transaction", params=params)
-        if good_status(response, catch_handled_http_exceptions=catch_handled_http_exceptions) is not True:
-            return None
-
-        return response.json()
+        response.raise_for_status()
+        response.json()
 
     def fetch_and_update_saldo(self):
         new_saldo = self.fetch_saldo()
@@ -299,11 +327,12 @@ class User:
     def rename(self, new_username: str, catch_handled_http_exceptions=None) -> Optional[bool]:
         params = {"user_id": self.data.user_id, "new_username": new_username}
         response = session.put(config["request_url"] + "rename_user", params=params)
-        if good_status(response, catch_handled_http_exceptions=catch_handled_http_exceptions) is not True:
-            return False
-
-        self.data.name = new_username
-        return True
+        status = good_status(response, catch_handled_http_exceptions=catch_handled_http_exceptions)
+        # todo gebruik deze logica meer in code
+        if status is True:
+            self.data.name = new_username
+            return True
+        return status
 
     # def refresh_data(self):
     #     new_data = self.get_userdata(user_id=self.data.user_id).data
@@ -325,7 +354,6 @@ class User:
 
     @staticmethod
     def add_user(userdata: UserSignupData, catch_handled_http_exceptions=None) -> bool | None:
-        print(userdata.model_dump())
         response = session.post(config["request_url"] + "add_user", json=userdata.model_dump())
         status = good_status(response, catch_handled_http_exceptions=catch_handled_http_exceptions)
         if status is True:
@@ -345,10 +373,11 @@ class User:
                      include_transactions=False, catch_handled_http_exceptions=None):
 
         if [user_id, username].count(None) != 1:
-            raise ValueError("Minimaal EN maximaal één van de waarden `user_id` en `username` moeten ingevuld zijn.\n"
-                             "Niet beide, niet niet beide niet.")
+            raise ValueError(
+                "Alleen één van de velden 'user_id' en 'username' invullen, niet beide en niet geen van beide")
 
         params = {"user_id": user_id, "username": username, "include_transactions": include_transactions}
+        # print(params)
 
         response = session.get(config["request_url"] + "get_userdata", params=params)
         status = good_status(response, catch_handled_http_exceptions=catch_handled_http_exceptions)
@@ -371,8 +400,7 @@ class User:
     @classmethod
     def get_transaction_list(cls, user_id: int, catch_handled_http_exceptions=None):
         response = session.get(config["request_url"] + "get_transaction_list", params={"user_id": user_id})
-        if good_status(response, catch_handled_http_exceptions=catch_handled_http_exceptions) is not True:
-            return False
+        response.raise_for_status()
         return cls.generate_transaction_object_list(response.json())
 
     # @staticmethod
@@ -386,7 +414,48 @@ class User:
         response = session.delete(config["request_url"] + "delete_user", params={"user_id": user_id})
         status = good_status(response, catch_handled_http_exceptions=catch_handled_http_exceptions)
         return status if status in [False, None] else True
-        # return True if good_status(response, catch_handled_http_exceptions=catch_handled_http_exceptions) is True else False
+        # return True if good_status(
+        # response, catch_handled_http_exceptions=catch_handled_http_exceptions) is True else False
+
+
+class System:
+    def get_version_number(self): ...  # todo
+
+    # @classmethod
+    # def prepare_crash_report_data(cls, crash_report):
+
+    @classmethod
+    def make_and_send_crash_report(cls, exception_info: tuple):
+        exc_type, exc_value, exc_traceback = exception_info
+
+        # program_data = {"globals": globals(), "locals": locals()}
+        exc_type, exc_value, exc_traceback = sys.exc_info()
+        crash_report = {
+            'timestamp': int(time.time()),
+            'filename': exc_traceback.tb_frame.f_code.co_filename,
+            'lineno': exc_traceback.tb_lineno,
+            'name': exc_traceback.tb_frame.f_code.co_name,
+            'type': exc_type.__name__,
+            'message': str(exc_value),
+            'traceback': traceback.format_exc().replace(os.getcwd(), "<WORKING_DIR>")
+            # 'program_data': program_data
+        }
+
+        success = System.report_crash(crash_report=crash_report)
+        if not success:
+            pysg.Popup(
+                "Crash reportage kon niet worden verzonden",
+                title="Crash reportage is niet verzonden",
+                keep_on_top=True,
+                font=config["font"])
+
+    @classmethod
+    def report_crash(cls, crash_report):
+        time.sleep(2)
+        response = session.post(config["request_url"] + "report_crash",
+                                json=crash_report)
+        response.raise_for_status()
+        return response.status_code == 200
 
 
 # todo: add to Camillib
@@ -420,11 +489,11 @@ def overwrite_dict_with_dict(original_dict: dict, overwriter_dict):
     return original_dict
 
 
-def on_exit(message=None) -> None:
-    if message is None:
-        sys.exit(0)
-    else:
-        sys.exit(str(message))
+# def on_exit(message=None) -> None:
+#     if message is None:
+#         sys.exit(0)
+#     else:
+#         sys.exit(str(message))
 
 
 def handle_http_exception(func):
