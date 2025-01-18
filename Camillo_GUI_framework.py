@@ -8,7 +8,7 @@ import backend
 import PySimpleGUI as pysg
 from imports import config
 
-pysg.theme(config["theme"])
+pysg.theme("light")
 
 
 class App:
