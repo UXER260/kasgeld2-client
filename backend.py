@@ -94,8 +94,7 @@ class App(Camillo_GUI_framework.App):
 
     @classmethod
     def on_run(cls):
-        import system
-        system.deploy_latest_update()
+        System.check_updates(note_no_updates=False)
         # als nieuwe update beschikbaar en gedownload was,
         # dan zal dit programma nu herstarten en alle code hieronder niet meer worden ge-execute
 
@@ -418,7 +417,7 @@ class User:
 
 class System:
     @classmethod
-    def check_updates(cls):  # todo implementeer knop in instellingen GUI
+    def check_updates(cls, note_no_updates=True):  # todo implementeer knop in instellingen GUI
         pysg.popup_no_buttons(
             "Op updates controleren ...",
             font=get_font(scale=0.75),
@@ -427,8 +426,10 @@ class System:
             non_blocking=True)
 
         current_version = system.get_current_version_number()
-        new_version = system.check_update_available(return_newest_version_number=True)
+        new_version = system.check_update_available(fetch=True, return_newest_version_number=True)
         if not new_version:
+            if not note_no_updates:
+                return False
             pysg.popup_ok(
                 "Programma is up-to-date.\n"
                 f"Huidige versie: v{current_version}\n"
@@ -453,7 +454,7 @@ class System:
             keep_on_top=True)
 
         pysg.popup_no_buttons(
-            "Updates installeren ...\n",
+            "Updates installeren ...",
             font=get_font(scale=0.75),
             auto_close=True, auto_close_duration=1,
             non_blocking=True)
@@ -468,7 +469,8 @@ class System:
                 keep_on_top=True)
             return False
 
-        print(new_version == system.get_current_version_number(fetch=True))  # debug todo
+        verify = system.get_current_version_number(fetch=True)
+        print(new_version, verify, new_version == verify)  # debug todo
         pysg.popup_no_buttons(
             "Updates geïnstalleerd.\n"
             f"Bijgewerk naar versie: v{new_version}\n\n"
