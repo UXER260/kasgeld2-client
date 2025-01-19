@@ -1,3 +1,22 @@
+Voeg variabel toe aan programma bij opstarten met huidig versie nummer en print in console
+
+Vraag naar beschrijving voor recreatie van probleem popup bij error
+
+sys.eventhook gebruiken
+
+Popup na opstarten wanneer nieuwe update is geïnstalleerd. Deze geeft onder andere aan wat de huidige versie is.
+In de popup kun je op een knopje drukken op te lezen wat er is veranderd.
+
+Instellingen knop
+met onder andere:
+- Info over de huidige programma versie. (formaat: vX, X = versienummer)
+ + Knop om te checken voor update
+- (client & server) config.json configurator (moet zelf json editor maken als aparte included module in project voor alle json data typen). Natuurlijk gebruiksvriendelijk met checkboxes in plaats van "true" en "false" typen enz...
+ + andere json file die verantwoordelijk is voor tooltips per json key, deze tooltips kunnen OOK gebruikt worden om aan te geven dat een bepaalde instelling veranderen pas effect heeft na herstarten van programma, bijv. `use_global_exception_catcher`.
+- admin account overview
+ + (alleen beschikbaar wanneer ingelogd) In admin overview kan de (of 'een') opper admin (met de juiste gemachtigden) andere admins toevoegen en bepalen of ze zelf ook admins toekunnen voegen ÉN welke leerlingen de nieuwe admin kan beheren
+- uitlogknop
+
 Identificatie van computers waar programma op draait met MAC-adres (voor bijv. crash reports, tracking van gebruik, etc.)
 
 
@@ -23,13 +42,7 @@ Voeg remote mode toe aan config.json. Verbind aan bijv. 'https://kasgeld.uxer260
  + zorg ervoor dat directe lan verbinding ook HTTPS gebruikt
 🧐
 
-Instellingen knop in account kies menu
-met onder andere:
-- (client & server) config.json configurator (moet zelf json editor maken als aparte included module in project voor alle json data typen). Natuurlijk gebruiksvriendelijk met checkboxes in plaats van "true" en "false" typen enz...
- + andere json file die verantwoordelijk is voor tooltips per json key, deze tooltips kunnen OOK gebruikt worden om aan te geven dat een bepaalde instelling veranderen pas effect heeft na herstarten van programma, bijv. `use_global_exception_catcher`.
-- account overview
- + (alleen beschikbaar wanneer ingelogd) In admin overview kan de (of 'een') opper admin (met de juiste gemachtigden) andere admins toevoegen en bepalen of ze zelf ook admins toekunnen voegen ÉN welke leerlingen de nieuwe admin kan beheren
-- uitlogknop
+
 
 
 Voeg inlog scherm toe

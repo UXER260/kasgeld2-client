@@ -2,23 +2,20 @@
 # Bevat alle functies voor communicatie met server
 from __future__ import annotations
 
-# Van ~/PycharmProjects/PythonProjects/BankKasGeldSchool/api/client/old4_fail/bank.py
+# Gebaseerd op ~/PycharmProjects/PythonProjects/BankKasGeldSchool/api/client/old4_fail/bank.py
 
 
 import copy
-import os
-import sys
 import time
 import traceback
-import types
 from pathlib import Path
-from pprint import pprint
-from typing import Union, Tuple
+from typing import Union
 from unidecode import unidecode
 import PySimpleGUI as pysg
 import Camillo_GUI_framework
 import requests
 
+import system
 from models import *
 
 from imports import *
@@ -97,8 +94,8 @@ class App(Camillo_GUI_framework.App):
 
     @classmethod
     def on_run(cls):
-        import updater
-        updater.deploy_latest_update()
+        import system
+        system.deploy_latest_update()
         # als nieuwe update beschikbaar en gedownload was,
         # dan zal dit programma nu herstarten en alle code hieronder niet meer worden ge-execute
 
@@ -107,7 +104,8 @@ class App(Camillo_GUI_framework.App):
             if cls.login_prompt(restart_on_success=False) is False:
                 return False
 
-        # als het None is dan niet inloggen, maar direct naar kies menu waar gebruiker word verteld dat geen connectie
+        # als het None is dan niet inloggen, maar direct naar kies menu waar gebruiker wordt verteld dat geen connectie
+        # todo check of deze comment nog actueel is
         super().on_run()
 
     @classmethod
@@ -124,7 +122,7 @@ class App(Camillo_GUI_framework.App):
                 font=config["font"])
             return
 
-        System.make_and_send_crash_report(exception_info=sys.exc_info())
+        System.report_crash()
 
         if isinstance(error, requests.exceptions.HTTPError):
             print(error.response.content)
@@ -419,18 +417,74 @@ class User:
 
 
 class System:
-    def get_version_number(self): ...  # todo
+    @classmethod
+    def check_updates(cls):  # todo implementeer knop in instellingen GUI
+        pysg.popup_no_buttons(
+            "Op updates controleren ...",
+            font=get_font(scale=0.75),
+            title="Controleren op updates ...",
+            auto_close=True, auto_close_duration=1,
+            non_blocking=True)
 
-    # @classmethod
-    # def prepare_crash_report_data(cls, crash_report):
+        current_version = system.get_current_version_number()
+        new_version = system.check_update_available(return_newest_version_number=True)
+        if not new_version:
+            pysg.popup_ok(
+                "Programma is up-to-date.\n"
+                f"Huidige versie: v{current_version}\n"
+                "Informatie over huidige update:\n"
+                "<nog niet geïmplementeerd>\n"
+                "Camillo\n\n",
+                font=get_font(scale=0.75),
+                title="Geen updates beschikbaar",
+                keep_on_top=True)
+            return False
+
+        pysg.popup_ok(
+            "Updates staan klaar.\n"
+            f"Huidige versie: v{current_version}\n"
+            f"Nieuwe versie: v{new_version}\n\n"
+            "Informatie over update:\n"
+            "<nog niet geïmplementeerd>\n"
+            "Camillo\n\n"
+            "installatie starten",
+            font=get_font(scale=0.75),
+            title="Updates beschikbaar",
+            keep_on_top=True)
+
+        pysg.popup_no_buttons(
+            "Updates installeren ...\n",
+            font=get_font(scale=0.75),
+            auto_close=True, auto_close_duration=1,
+            non_blocking=True)
+
+        merge_latest_update_success = system.merge_latest_repo()
+        if not merge_latest_update_success:
+            pysg.popup_ok(
+                "Er was een probleem bij het toepassen van de update.\n"
+                "Probeer het later opnieuw.",
+                font=get_font(scale=0.75),
+                title="Bijwerken gefaald",
+                keep_on_top=True)
+            return False
+
+        print(new_version == system.get_current_version_number(fetch=True))  # debug todo
+        pysg.popup_no_buttons(
+            "Updates geïnstalleerd.\n"
+            f"Bijgewerk naar versie: v{new_version}\n\n"
+            "Programma herstart over 2 seconden ...",
+            font=get_font(scale=0.75),
+            title="Bijwerken voltooid", non_blocking=False, auto_close=True,
+            auto_close_duration=2)
+
+        restart_program()
 
     @classmethod
-    def make_and_send_crash_report(cls, exception_info: tuple):
-        exc_type, exc_value, exc_traceback = exception_info
-
-        # program_data = {"globals": globals(), "locals": locals()}
+    def report_crash(cls, description: str | None = None):
         exc_type, exc_value, exc_traceback = sys.exc_info()
+        # program_data = {"globals": globals(), "locals": locals()}
         crash_report = {
+            'description': description,
             'timestamp': int(time.time()),
             'filename': exc_traceback.tb_frame.f_code.co_filename,
             'lineno': exc_traceback.tb_lineno,
@@ -440,18 +494,18 @@ class System:
             'traceback': traceback.format_exc().replace(os.getcwd(), "<WORKING_DIR>")
             # 'program_data': program_data
         }
-
-        success = System.report_crash(crash_report=crash_report)
+        success = System.send_crashreport(crash_report=crash_report)
         if not success:
             pysg.Popup(
                 "Crash reportage kon niet worden verzonden",
                 title="Crash reportage is niet verzonden",
                 keep_on_top=True,
                 font=config["font"])
+            return False
+        return True
 
     @classmethod
-    def report_crash(cls, crash_report):
-        time.sleep(2)
+    def send_crashreport(cls, crash_report):
         response = session.post(config["request_url"] + "report_crash",
                                 json=crash_report)
         response.raise_for_status()
@@ -459,21 +513,21 @@ class System:
 
 
 # todo: add to Camillib
-def filter_list(search: str, seq: list[str], case_sensitive: bool = False, unicodify=True,
+def filter_list(search: str, seq: list[str], unicodify=True,
                 order_alphabetically: bool = True) -> list:
     if order_alphabetically:
         seq.sort()
 
-    if unicodify:
-        seq = [unidecode(item) for item in seq]
-
     result = []
     for item in seq:
+        search_, item_ = unidecode(search).casefold(), unidecode(item).casefold()
+        # str.casefold() = Berend -> berend
         if item == search:
             result.insert(0, item)
-        elif (search in item) if case_sensitive else (search.casefold() in item.casefold()):
+        elif (search in item) if not unicodify else (search_ in item_):
+            # unidecode() = Lóa -> Loa
             result.append(item)
-
+    # unidecode() + str.casefold() = Daniël -> daniel
     return result
 
 

@@ -90,7 +90,6 @@ class UserSelectionWindow(Camillo_GUI_framework.Gui):
             self.last_selection = self.selected_items
             self.selected_index = self.namelist.index(username)
             print(self.selected_index)
-            0/0
             if self.multi_selection_mode is True:
                 self.window.set_title(
                     f"Leerlingenoverzicht ({len(self.values['-namelist-'])}/{len(self.namelist)} geselecteerd)")
