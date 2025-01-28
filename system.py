@@ -86,3 +86,6 @@ def deploy_latest_update(fetch=True):
         return False
     print("Done updating. Restarting...")
     restart_program()
+
+
+print("test")
