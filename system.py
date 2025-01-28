@@ -59,7 +59,7 @@ def check_update_available(return_newest_version_number=False, fetch=False) -> b
     return True
 
 
-def merge_latest_repo(fetch=True):  # update if available
+def merge_latest_repo(fetch=False):  # update if available
     """
     Zorg ervoor dat is ge-fetched voor gebruik
     """

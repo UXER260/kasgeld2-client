@@ -48,11 +48,14 @@ class UserSelectionWindow(Camillo_GUI_framework.Gui):
             self.window.set_title(f"Leerlingenoverzicht (totaal {len(self.namelist)})")
             self.window["-namelist-"].Widget.config(selectmode=self.default_single_select_mode)
 
-            if self.window["-namelist-"]:
-                # Find the last selected item
-                if self.values.get("-namelist-", None):
-                    # Update the Listbox to select only the last selected item
-                    self.window["-namelist-"].update(set_to_index=[self.selected_index])
+            # if self.window["-namelist-"].get_list_values():
+            #     # Find the last selected item
+            #     if self.values.get("-namelist-", None):
+            # todo kijk of dit nodig is
+
+            # Update the Listbox to select only the last selected item
+            if self.selected_items:
+                self.window["-namelist-"].update(set_to_index=[self.selected_index])
 
     def layout(self) -> list[list[pysg.Element]]:
         namelist = self.namelist if self.namelist is not None else [""]
@@ -76,12 +79,16 @@ class UserSelectionWindow(Camillo_GUI_framework.Gui):
         elif self.event == '-SEARCH_BAR_FIELD-':  # if a letter is typed
             self.refresh(search_for_name=True)  # search feature
 
-        elif self.event == '-namelist-':
+        elif self.event == '-namelist-' and self.window["-namelist-"].get_list_values():
             self.selected_items = set(self.values["-namelist-"])
+            len_selected_items = len(self.selected_items)
+            len_last_selection = len(self.last_selection)
             print("\n\n")
             print("last_selection", self.last_selection)
             print("selected_items", self.selected_items)
-            if len(self.selected_items) == 1:
+            if not len_last_selection and not len_selected_items:
+                return
+            elif len_selected_items == 1:
                 username = list(self.selected_items)[0]
             else:
                 username = list(self.last_selection ^ self.selected_items)[0]

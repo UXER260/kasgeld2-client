@@ -95,6 +95,7 @@ class App(Camillo_GUI_framework.App):
     @classmethod
     def on_run(cls):
         System.check_updates(note_no_updates=False)
+        # system.deploy_latest_update()
         # als nieuwe update beschikbaar en gedownload was,
         # dan zal dit programma nu herstarten en alle code hieronder niet meer worden ge-execute
 
@@ -422,7 +423,7 @@ class System:
             "Op updates controleren ...",
             font=get_font(scale=0.75),
             title="Controleren op updates ...",
-            auto_close=True, auto_close_duration=1,
+            auto_close=True, auto_close_duration=0.1,
             non_blocking=True)
 
         current_version = system.get_current_version_number(fetch=True)
