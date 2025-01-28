@@ -5,15 +5,19 @@
 import os
 import sys
 
-import PySimpleGUI
-
 
 def restart_program():
     python = sys.executable
     os.execv(python, [python] + sys.argv)
 
 
-def get_current_version_number(remote=False):
+def get_current_version_number(remote=False, fetch=False):
+    """
+    Zorg ervoor dat is ge-fetched voor gebruik
+    """
+    if fetch:
+        fetch_changes()
+
     if remote:
         # Get the commit count for the remote branch
         return int(os.popen("git rev-list --count origin/master").read())
@@ -25,7 +29,7 @@ def fetch_changes():  # Fetch the latest changes from the remote repository
     print(os.popen("git fetch --verbose origin").read(), "aaa")
 
 
-def check_update_available(return_newest_version_number=False) -> bool | int:
+def check_update_available() -> bool | int:
     """
     Zorg ervoor dat is ge-fetched voor gebruik
     """
@@ -33,25 +37,23 @@ def check_update_available(return_newest_version_number=False) -> bool | int:
     #     fetch_changes()
 
     # Get the latest commit hash on the local and remote branches
-    # local_hash = os.popen("git rev-parse HEAD").read()
-    # remote_hash = os.popen("git rev-parse origin/master").read()
+    local_hash = os.popen("git rev-parse HEAD").read()
+    remote_hash = os.popen("git rev-parse origin/master").read()
 
     # print("local hash ", local_hash.strip())
     # print("remote hash", remote_hash.strip())
 
-    local_version = get_current_version_number(remote=False)
-    remote_version = get_current_version_number(remote=True)
+    # local_version = get_current_version_number(remote=False)
+    # remote_version = get_current_version_number(remote=True)
 
-    print("local version ", local_version)
-    print("remote version", remote_version)
+    print("local version ", local_hash)
+    print("remote version", remote_hash)
 
-    if local_version == remote_version:
+    if local_hash == remote_hash:
         print("Your local repository is up-to-date.")
         return False
 
     print("New version available.")
-    if return_newest_version_number:
-        return remote_version
     return True
 
 

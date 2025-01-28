@@ -1,5 +1,4 @@
 # client/main.py
-print("update test positief!")
 import datetime
 from typing import Union
 
