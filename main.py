@@ -1,5 +1,5 @@
 # client/main.py
-print("TESTTTT!!!!!!")
+print("test werkte!")
 import datetime
 from typing import Union
 
