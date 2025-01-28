@@ -425,8 +425,8 @@ class System:
             auto_close=True, auto_close_duration=1,
             non_blocking=True)
 
-        current_version = system.get_current_version_number()
-        new_version = system.check_update_available(return_newest_version_number=True)
+        current_version = system.get_current_version_number(fetch=True)
+        new_version = system.check_update_available(return_newest_version_number=True, fetch=False)
         if not new_version:
             if not note_no_updates:
                 return False
@@ -459,7 +459,7 @@ class System:
             auto_close=True, auto_close_duration=1,
             non_blocking=True)
 
-        merge_latest_update_success = system.merge_latest_repo(fetch=True)
+        merge_latest_update_success = system.merge_latest_repo()
         if not merge_latest_update_success:
             pysg.popup_ok(
                 "Er was een probleem bij het toepassen van de update.\n"

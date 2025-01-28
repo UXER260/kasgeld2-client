@@ -29,7 +29,7 @@ def fetch_changes():  # Fetch the latest changes from the remote repository
     print(os.popen("git fetch --verbose origin").read(), "aaa")
 
 
-def check_update_available(return_newest_version_number=False, fetch=True) -> bool | int:
+def check_update_available(return_newest_version_number=False, fetch=False) -> bool | int:
     """
     Zorg ervoor dat is ge-fetched voor gebruik
     """
@@ -80,10 +80,10 @@ def deploy_latest_update(fetch=True):
     Zorg ervoor dat is ge-fetched voor gebruik
     """
     # TODO maak checken voor update en update installeren apart
-    update_available = check_update_available()
+    update_available = check_update_available(fetch=fetch)
     if not update_available:
         return False
-    merged_latest_update = merge_latest_repo(fetch=fetch)
+    merged_latest_update = merge_latest_repo()
     if not merged_latest_update:
         return False
     print("Done updating. Restarting...")
