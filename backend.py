@@ -426,8 +426,8 @@ class System:
             non_blocking=True)
 
         current_version = system.get_current_version_number()
-        new_version_available = system.check_update_available()
-        if not new_version_available:
+        new_version = system.check_update_available(return_newest_version_number=True)
+        if not new_version:
             if not note_no_updates:
                 return False
             pysg.popup_ok(
@@ -444,6 +444,7 @@ class System:
         pysg.popup_ok(
             "Updates staan klaar.\n"
             f"Huidige versie: v{current_version}\n"
+            f"Nieuwe versie: v{new_version}\n\n"
             "Informatie over update:\n"
             "<nog niet geïmplementeerd>\n"
             "Camillo\n\n"
@@ -468,7 +469,6 @@ class System:
                 keep_on_top=True)
             return False
 
-        new_version = system.get_current_version_number(remote=True, fetch=False)
         print(current_version, new_version, new_version != current_version)  # debug todo
         pysg.popup_no_buttons(
             "Updates geïnstalleerd.\n"

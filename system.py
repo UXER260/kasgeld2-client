@@ -29,7 +29,7 @@ def fetch_changes():  # Fetch the latest changes from the remote repository
     print(os.popen("git fetch --verbose origin").read(), "aaa")
 
 
-def check_update_available() -> bool | int:
+def check_update_available(return_newest_version_number=False, fetch=True) -> bool | int:
     """
     Zorg ervoor dat is ge-fetched voor gebruik
     """
@@ -37,23 +37,25 @@ def check_update_available() -> bool | int:
     #     fetch_changes()
 
     # Get the latest commit hash on the local and remote branches
-    local_hash = os.popen("git rev-parse HEAD").read()
-    remote_hash = os.popen("git rev-parse origin/master").read()
+    # local_hash = os.popen("git rev-parse HEAD").read()
+    # remote_hash = os.popen("git rev-parse origin/master").read()
 
     # print("local hash ", local_hash.strip())
     # print("remote hash", remote_hash.strip())
 
-    # local_version = get_current_version_number(remote=False)
-    # remote_version = get_current_version_number(remote=True)
+    local_version = get_current_version_number(remote=False)
+    remote_version = get_current_version_number(remote=True, fetch=fetch)
 
-    print("local version ", local_hash)
-    print("remote version", remote_hash)
+    print("local version ", local_version)
+    print("remote version", remote_version)
 
-    if local_hash == remote_hash:
+    if local_version == remote_version:
         print("Your local repository is up-to-date.")
         return False
 
     print("New version available.")
+    if return_newest_version_number:
+        return remote_version
     return True
 
 
@@ -86,6 +88,3 @@ def deploy_latest_update(fetch=True):
         return False
     print("Done updating. Restarting...")
     restart_program()
-
-
-print("test")
