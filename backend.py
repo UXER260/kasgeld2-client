@@ -426,7 +426,7 @@ class System:
             non_blocking=True)
 
         current_version = system.get_current_version_number()
-        new_version = system.check_update_available(fetch=True, return_newest_version_number=True)
+        new_version = system.check_update_available(return_newest_version_number=True)
         if not new_version:
             if not note_no_updates:
                 return False
@@ -459,18 +459,17 @@ class System:
             auto_close=True, auto_close_duration=1,
             non_blocking=True)
 
-        merge_latest_update_success = system.merge_latest_repo()
+        merge_latest_update_success = system.merge_latest_repo(fetch=True)
         if not merge_latest_update_success:
             pysg.popup_ok(
                 "Er was een probleem bij het toepassen van de update.\n"
                 "Probeer het later opnieuw.",
                 font=get_font(scale=0.75),
-                title="Bijwerken gefaald",
+                title="Bijwerken niet voltooid",
                 keep_on_top=True)
             return False
 
-        verify = system.get_current_version_number(fetch=True)
-        print(new_version, verify, new_version == verify)  # debug todo
+        print(current_version, new_version, new_version != current_version)  # debug todo
         pysg.popup_no_buttons(
             "Updates geïnstalleerd.\n"
             f"Bijgewerk naar versie: v{new_version}\n\n"
