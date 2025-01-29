@@ -95,6 +95,8 @@ class App(Camillo_GUI_framework.App):
     @classmethod
     def on_run(cls):
         System.check_updates(note_no_updates=False)
+        pysg.popup_ok("Update Voltooid", title="Bijwerking geslaagd",
+                              font=get_font(), keep_on_top=True)
         # system.deploy_latest_update()
         # als nieuwe update beschikbaar en gedownload was,
         # dan zal dit programma nu herstarten en alle code hieronder niet meer worden ge-execute
