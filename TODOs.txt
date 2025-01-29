@@ -6,6 +6,7 @@ sys.eventhook gebruiken
 
 Popup na opstarten wanneer nieuwe update is geïnstalleerd. Deze geeft onder andere aan wat de huidige versie is.
 In de popup kun je op een knopje drukken op te lezen wat er is veranderd.
+Dit knopje zal je ook in de instellingen vinden
 
 Instellingen knop
 met onder andere:

@@ -20,9 +20,13 @@ def get_current_version_number(remote=False, fetch=False):
 
     if remote:
         # Get the commit count for the remote branch
-        return int(os.popen("git rev-list --count origin/master").read())
-
-    return int(os.popen("git rev-list --count HEAD").read())
+        command = "git rev-list --count origin/master"
+    else:
+        command = "git rev-list --count HEAD"
+    # Vroeger zaten beide client en server side in dezelfde repository. Deze is nu alleen voor de server.
+    # Deze client zit in een nieuwe repository.
+    # 92 komt van het versienummer van de laatste commit voordat de client afsplitste
+    return int(os.popen(command).read()) + 92
 
 
 def fetch_changes():  # Fetch the latest changes from the remote repository
