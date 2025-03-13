@@ -1,7 +1,4 @@
 # client/main.py
-import random
-
-print("test werkte!")
 import datetime
 from typing import Union
 
