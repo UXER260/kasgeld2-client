@@ -312,7 +312,7 @@ class User:
         params = {"user_id": self.data.user_id, "transaction_id": transaction_id}
         response = session.get(config["request_url"] + "get_saldo_after_transaction", params=params)
         response.raise_for_status()
-        response.json()
+        return response.json()
 
     def fetch_and_update_saldo(self):
         new_saldo = self.fetch_saldo()

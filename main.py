@@ -1,4 +1,6 @@
 # client/main.py
+import random
+
 print("test werkte!")
 import datetime
 from typing import Union
@@ -15,7 +17,7 @@ pysg.set_global_icon(icon.icon)
 class UserSelectionWindow(Camillo_GUI_framework.Gui):
     def __init__(self, namelist: list[str] = None,
                  multi_selection_mode=False, window_title=None, *args, **kwargs):
-        self.default_single_select_mode = pysg.LISTBOX_SELECT_MODE_BROWSE
+        self.default_single_select_mode = pysg.LISTBOX_SELECT_MODE_SINGLE
         self.default_multi_select_mode = pysg.SELECT_MODE_MULTIPLE
         self.namelist = namelist
         if window_title is None and namelist:
@@ -207,8 +209,13 @@ class UserOverviewWindow(Camillo_GUI_framework.Gui):
             date = datetime.date.fromtimestamp(transaction.transaction_timestamp).strftime("%d/%m/%Y")
 
             # titel + datum = transaction preview
+            amount = f"{transaction.amount:.2f}"
+            amount_split = amount.split('.')
+            if int(amount_split[1]) == 0 or len(amount_split) == 1:
+                amount = amount_split[0]
+
             transaction_preview_list.append(
-                f"{date}   {transaction.title}"
+                f"{date}  {transaction.title}"
             )
         return backend.reverse(transaction_preview_list)
 
