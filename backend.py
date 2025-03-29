@@ -57,7 +57,7 @@ class AdminLoginMenu(Camillo_GUI_framework.Gui):
 
         if self.event == "OK" and all(self.values):
             login_field = AdminLoginField(email=self.values["-EMAIL-"], password=self.values["-PASSWORD-"])
-            succes = Admin.login(login_field=login_field)
+            succes = User.login(login_field=login_field)
             if not succes:
                 pysg.popup_quick("Gegevens komen niet overeen", auto_close_duration=1, non_blocking=True,
                                  no_titlebar=True, background_color="red", title="Fout", font=self.font,
@@ -99,7 +99,7 @@ class App(Camillo_GUI_framework.App):
         # als nieuwe update beschikbaar en gedownload was,
         # dan zal dit programma nu herstarten en alle code hieronder niet meer worden ge-execute
 
-        valid_session = Admin.check_session_valid()
+        valid_session = User.check_session_valid()
         if valid_session is False:
             if cls.login_prompt(restart_on_success=False) is False:
                 return False
@@ -267,9 +267,9 @@ def good_status(response: requests.Response, catch_handled_http_exceptions: Opti
         return False
 
 
-class Admin:  # todo
-    def __init__(self):
-        pass
+class User:
+    def __init__(self, data: RawUserData):
+        self.data = data
 
     @staticmethod
     def check_session_valid(catch_handled_http_exceptions=None, restart_on_unauthorized=False):
@@ -285,11 +285,6 @@ class Admin:  # todo
         response = session.post(config["request_url"] + "login", json=login_field.model_dump())
         return good_status(response, catch_handled_http_exceptions=catch_handled_http_exceptions,
                            restart_on_unauthorized=restart_on_unauthorized) is True
-
-
-class User:
-    def __init__(self, data: RawUserData):
-        self.data = data
 
     def set_saldo(self, transaction_details: TransactionField):
         data = transaction_details.model_dump()
@@ -417,6 +412,8 @@ class User:
 
 
 class System:
+    current_version_number: int = None
+
     @classmethod
     def check_updates(cls, note_no_updates=True):  # todo implementeer knop in instellingen GUI
         pysg.popup_no_buttons(
@@ -429,6 +426,7 @@ class System:
         current_version = system.get_current_version_number(fetch=True)
         new_version = system.check_update_available(return_newest_version_number=True, fetch=False)
         if not new_version:
+            cls.version_number = current_version
             if not note_no_updates:
                 return False
             pysg.popup_ok(

@@ -33,10 +33,14 @@ def fetch_changes():  # Fetch the latest changes from the remote repository
     print(os.popen("git fetch --verbose origin").read(), "aaa")
 
 
-def check_update_available(return_newest_version_number=False, fetch=False) -> bool | int:
+def check_update_available(return_newest_version_number=False, return_current_version_number=False, fetch=False) -> bool | int:
     """
     Zorg ervoor dat is ge-fetched voor gebruik
     """
+
+    if return_newest_version_number and return_current_version_number:
+        raise ValueError("Niet beide waarden kunnen True zijn")
+
     # if fetch is True:  # fixme fetch is niet meer nodig, gebruik get version number functie voor vergelijking
     #     fetch_changes()
 
@@ -60,6 +64,8 @@ def check_update_available(return_newest_version_number=False, fetch=False) -> b
     print("New version available.")
     if return_newest_version_number:
         return remote_version
+    elif return_current_version_number:
+        return local_version
     return True
 
 

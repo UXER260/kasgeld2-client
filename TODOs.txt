@@ -1,4 +1,20 @@
-Voeg variabel toe aan programma bij opstarten met huidig versie nummer en print in console
+
+
+
+
+
+
+
+
+
+
+
+Transactie verwijderen ⚠️ nog #todo! op client side
+Als er meerdere gebruikers gelinkt zijn aan een transactie word er gevraagd
+of deze transactie alleen voor deze gebruiker of voor alle gebruikers moet worden verwijderd.
+Als het antwoord 'alle' is, wordt er nog één keer om bevestiging gevraagd die uitlegt wat de consequenties
+zijn.
+
 
 Vraag naar beschrijving voor recreatie van probleem popup bij error
 
@@ -45,6 +61,13 @@ Voeg remote mode toe aan config.json. Verbind aan bijv. 'https://kasgeld.uxer260
 
 
 
+
+
+
+
+
+Voeg variabel toe aan programma bij opstarten met huidig versie nummer en print in console
+✅
 
 Voeg inlog scherm toe
 ✅
