@@ -438,7 +438,7 @@ class AddUserMenu(Camillo_GUI_framework.Gui):
              pysg.InputText(current_date, font=self.font, size=(15, 0), key="-SIGNUP_DATE-")],
             [pysg.Text(f"Berekendatum",
                        tooltip="Vanaf welk moment het kasgeld is berekend.\n"
-                               "(Wanneer leeg gelijk aan huidige datum)",
+                               "(Wanneer leeg gelijk aan aanmelddatum)",
                        font=self.font, expand_x=True, expand_y=True), pysg.Push(),
              pysg.InputText('', font=self.font, size=(15, 0), key="-CALCULATION_START_DATE-")],
             [pysg.HorizontalSeparator()],

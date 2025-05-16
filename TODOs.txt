@@ -1,14 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
 Transactie verwijderen ⚠️ nog #todo! op client side
 Als er meerdere gebruikers gelinkt zijn aan een transactie word er gevraagd
 of deze transactie alleen voor deze gebruiker of voor alle gebruikers moet worden verwijderd.
