@@ -1,9 +1,8 @@
 # Created by camillodejong at 14/08/2024 00:29
-
 # DEZE FILE IS BEDOELD GEÏMPORTEERD ZIJN VANAF `main.py` (OM PROGRAMMA TE KUNNEN HERSTARTEN)
 
-import os
-import sys
+
+from imports import *
 
 
 def restart_program():
@@ -11,90 +10,87 @@ def restart_program():
     os.execv(python, [python] + sys.argv)
 
 
-def get_current_version_number(remote=False, fetch=False):
-    """
-    Zorg ervoor dat is ge-fetched voor gebruik
-    """
-    if fetch:
-        fetch_changes()
-
-    if remote:
-        # Get the commit count for the remote branch
-        command = "git rev-list --count origin/master"
-    else:
-        command = "git rev-list --count HEAD"
-    # Vroeger zaten beide client en server side in dezelfde repository. Deze is nu alleen voor de server.
-    # Deze client zit in een nieuwe repository.
-    # 92 komt van het versienummer van de laatste commit voordat de client afsplitste
-    return int(os.popen(command).read()) + 92
-
-
-def fetch_changes():  # Fetch the latest changes from the remote repository
+def fetch_changes():
     print(os.popen("git fetch --verbose origin").read(), "aaa")
 
 
-def check_update_available(return_newest_version_number=False, return_current_version_number=False, fetch=False) -> bool | int:
+def get_local_version_number() -> int:
+    """Get local commit count (int)"""
+    return int(os.popen("git rev-list --count HEAD").read())
+
+
+def get_remote_version_number(fetch=True) -> int:
+    """Get remote commit count (int), optionally fetch first"""
+    if fetch:
+        fetch_changes()
+    return int(os.popen("git rev-list --count origin/master").read())
+
+
+def get_local_hash() -> str:
+    return os.popen("git rev-parse HEAD").read().strip()
+
+
+def get_remote_hash(fetch=True) -> str:
+    if fetch:
+        fetch_changes()
+    return os.popen("git rev-parse origin/master").read().strip()
+
+
+def check_update_available(fetch=True, return_version=False) -> bool | int:
     """
-    Zorg ervoor dat is ge-fetched voor gebruik
+    Check if an update is available by comparing commit hashes.
+    Returns:
+      - False if up to date
+      - True if update available and return_version=False
+      - remote version number if return_version=True
     """
+    remote_hash = get_remote_hash(fetch=fetch)
+    local_hash = get_local_hash()
+    print(f"Local hash: {local_hash}")
+    print(f"Remote hash: {remote_hash}")
 
-    if return_newest_version_number and return_current_version_number:
-        raise ValueError("Niet beide waarden kunnen True zijn")
-
-    # if fetch is True:  # fixme fetch is niet meer nodig, gebruik get version number functie voor vergelijking
-    #     fetch_changes()
-
-    # Get the latest commit hash on the local and remote branches
-    # local_hash = os.popen("git rev-parse HEAD").read()
-    # remote_hash = os.popen("git rev-parse origin/master").read()
-
-    # print("local hash ", local_hash.strip())
-    # print("remote hash", remote_hash.strip())
-
-    local_version = get_current_version_number(remote=False)
-    remote_version = get_current_version_number(remote=True, fetch=fetch)
-
-    print("local version ", local_version)
-    print("remote version", remote_version)
-
-    if local_version == remote_version:
+    if local_hash == remote_hash:
         print("Your local repository is up-to-date.")
         return False
 
     print("New version available.")
-    if return_newest_version_number:
-        return remote_version
-    elif return_current_version_number:
-        return local_version
+    if return_version:
+        return get_remote_version_number(fetch=False)
     return True
 
 
-def merge_latest_repo(fetch=False):  # update if available
-    """
-    Zorg ervoor dat is ge-fetched voor gebruik
-    """
-    if fetch is True:
+def merge_latest_repo(fetch=True) -> bool:
+    """Reset local repo to remote master HEAD"""
+    if fetch:
         fetch_changes()
     print("Merging latest changes...")
-
-    # todo gebruik voor dev
-    # print(os.popen("git merge origin/master").read())
-
-    # todo gebruik vóór installeren op raspberry schoolserver!!!!!!!!
-    print(os.popen("git reset --hard origin/master").read())
+    output = os.popen("git reset --hard origin/master").read()
+    print(output)
     return True
+
+
+def update_requirements(requirements_file=None):
+    if requirements_file is None:
+        requirements_file = config["requirements_file_path"]
+    print(f"Installing requirements from {requirements_file}...")
+    os.system(f'pip3 install -r "{requirements_file}"')
 
 
 def deploy_latest_update(fetch=True):
     """
-    Zorg ervoor dat is ge-fetched voor gebruik
+    Deploy update if available:
+    - Check update
+    - Merge latest repo
+    - Install requirements
+    - Restart program
     """
-    # TODO maak checken voor update en update installeren apart
-    update_available = check_update_available(fetch=fetch)
-    if not update_available:
+    if not check_update_available(fetch=fetch):
         return False
-    merged_latest_update = merge_latest_repo()
-    if not merged_latest_update:
+
+    if not merge_latest_repo(fetch=False):
+        print("Failed to merge latest repo.")
         return False
+
+    update_requirements()
     print("Done updating. Restarting...")
     restart_program()

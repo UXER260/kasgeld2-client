@@ -423,8 +423,8 @@ class System:
             auto_close=True, auto_close_duration=0.1,
             non_blocking=True)
 
-        current_version = system.get_current_version_number(fetch=True)
-        new_version = system.check_update_available(return_newest_version_number=True, fetch=False)
+        current_version = system.get_local_version_number()
+        new_version = system.check_update_available(return_version=True, fetch=True)
         if not new_version:
             cls.version_number = current_version
             if not note_no_updates:
