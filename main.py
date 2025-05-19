@@ -1,4 +1,5 @@
 # client/main.py
+print("test!")
 import datetime
 from typing import Union
 
