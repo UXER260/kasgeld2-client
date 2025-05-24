@@ -1,12 +1,9 @@
 # client/Camillo_GUI_framework
 # Zelf gemaakt framework voor user interface
-import os
-import sys
 from typing import Optional, Union
 
 import backend
-import PySimpleGUI as pysg
-from imports import config
+from imports import *
 
 pysg.theme(config["theme"])
 

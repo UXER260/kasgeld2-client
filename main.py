@@ -5,7 +5,6 @@ from typing import Union
 import backend
 import icon
 from imports import *
-import PySimpleGUI as pysg
 import Camillo_GUI_framework
 
 pysg.set_global_icon(icon.icon)

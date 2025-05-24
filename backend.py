@@ -11,7 +11,6 @@ import traceback
 from pathlib import Path
 from typing import Union
 from unidecode import unidecode
-import PySimpleGUI as pysg
 import Camillo_GUI_framework
 import requests
 
