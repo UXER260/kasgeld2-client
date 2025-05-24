@@ -135,6 +135,7 @@ class App:
 
         if refresh is True:
             cls.current_gui().refresh(*refresh_args, **refresh_kwargs)
+        return None
 
     @classmethod
     def update(cls):
@@ -186,7 +187,7 @@ class Gui:
             font = backend.get_font()
 
         self.window: Optional[pysg.Window] = None
-        self.menu: Optional[App] = None
+        self.menu: Optional[type(App)] = None
 
         self.window_title = window_title
         self.window_dimensions = window_dimensions
