@@ -1,12 +1,9 @@
 # client/Camillo_GUI_framework
 # Zelf gemaakt framework voor user interface
-import os
-import sys
 from typing import Optional, Union
 
 import backend
-import PySimpleGUI as pysg
-from imports import config
+from imports import *
 
 pysg.theme(config["theme"])
 
@@ -138,6 +135,7 @@ class App:
 
         if refresh is True:
             cls.current_gui().refresh(*refresh_args, **refresh_kwargs)
+        return None
 
     @classmethod
     def update(cls):
@@ -189,7 +187,7 @@ class Gui:
             font = backend.get_font()
 
         self.window: Optional[pysg.Window] = None
-        self.menu: Optional[App] = None
+        self.menu: Optional[type(App)] = None
 
         self.window_title = window_title
         self.window_dimensions = window_dimensions
