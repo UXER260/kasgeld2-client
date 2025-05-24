@@ -20,6 +20,9 @@ from models import *
 
 from imports import *
 
+print("current branch :", system.branch)
+print("current version:", system.get_local_version_number())
+
 
 class AdminLoginMenu(Camillo_GUI_framework.Gui):
     def __init__(self, window_dimensions=(None, None), window_is_popup=True,
@@ -412,8 +415,6 @@ class User:
 
 
 class System:
-    current_version_number: int = None
-
     @classmethod
     def check_updates(cls, note_no_updates=True):  # todo implementeer knop in instellingen GUI
         pysg.popup_no_buttons(
