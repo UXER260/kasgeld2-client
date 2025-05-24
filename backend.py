@@ -11,6 +11,7 @@ import traceback
 from pathlib import Path
 from typing import Union
 from unidecode import unidecode
+import PySimpleGUI as pysg
 import Camillo_GUI_framework
 import requests
 
@@ -18,9 +19,6 @@ import system
 from models import *
 
 from imports import *
-
-print("current branch :", system.branch)
-print("current version:", system.get_local_version_number())
 
 
 class AdminLoginMenu(Camillo_GUI_framework.Gui):
@@ -51,7 +49,7 @@ class AdminLoginMenu(Camillo_GUI_framework.Gui):
     def update(self):
         super().update()
 
-        if self.event == "-PASSWORD-<HoverPassword>":  # Geeft wachtwoord weer wanneer hovert over input
+        if self.event == "-PASSWORD-<HoverPassword>":  # Geeft wachtwoord weer bij hover over input
             self.window["-PASSWORD-"].update(password_char="")
 
         elif self.event == "-PASSWORD-<UnHoverPassword>":
@@ -76,8 +74,6 @@ class AdminLoginMenu(Camillo_GUI_framework.Gui):
                 self.menu.reset_app()
                 pysg.popup_no_buttons("succes!", non_blocking=True, auto_close=True, auto_close_duration=.5,
                                       no_titlebar=True, font=self.font, keep_on_top=True)
-                return None
-        return None
 
     def on_close(self):
         App.active = False
@@ -111,7 +107,6 @@ class App(Camillo_GUI_framework.App):
         # als het None is dan niet inloggen, maar direct naar kies menu waar gebruiker wordt verteld dat geen connectie
         # todo check of deze comment nog actueel is
         super().on_run()
-        return None
 
     @classmethod
     def error_handler(cls, error: Exception):
@@ -207,8 +202,6 @@ def get_font(scale: float = 1, font: Union[tuple, list, str] = None):
 
 
 def check_string_valid_float(string: str):
-    if type(string) is float:
-        return float
     try:
         return float(string.replace(',', '.'))
     except ValueError:
@@ -232,8 +225,6 @@ def good_status(response: requests.Response, catch_handled_http_exceptions: Opti
     :type response: requests.Response
     :param catch_handled_http_exceptions:
     :type catch_handled_http_exceptions:
-    :param restart_on_unauthorized: herstart programma wanneer authenticatie is mislukt zodat login popup opkomt
-    :type restart_on_unauthorized bool
     :return: None wanneer sessie ongeldig is, True wanneer alles goed is en False wanneer er iets niet goed is
     :rtype: bool | None
     """
@@ -305,14 +296,14 @@ class User:
         self.fetch_and_update_saldo()
         return True
 
-    def fetch_saldo(self) -> str | None:
+    def fetch_saldo(self, catch_handled_http_exceptions=None) -> str | None:
         params = {"user_id": self.data.user_id}
         response = session.get(config["request_url"] + "get_saldo", params=params)
         response.raise_for_status()
 
         return response.json()
 
-    def fetch_saldo_after_transaction(self, transaction_id: int):
+    def fetch_saldo_after_transaction(self, transaction_id: int, catch_handled_http_exceptions=None):
         params = {"user_id": self.data.user_id, "transaction_id": transaction_id}
         response = session.get(config["request_url"] + "get_saldo_after_transaction", params=params)
         response.raise_for_status()
@@ -323,7 +314,7 @@ class User:
         if new_saldo is None:
             return None
 
-        self.data.saldo = float(new_saldo)
+        self.data.saldo = new_saldo
         return self.data.saldo
 
     def rename(self, new_username: str, catch_handled_http_exceptions=None) -> Optional[bool]:
@@ -400,7 +391,7 @@ class User:
             else ["Geen geldige verbinding"]
 
     @classmethod
-    def get_transaction_list(cls, user_id: int):
+    def get_transaction_list(cls, user_id: int, catch_handled_http_exceptions=None):
         response = session.get(config["request_url"] + "get_transaction_list", params={"user_id": user_id})
         response.raise_for_status()
         return cls.generate_transaction_object_list(response.json())
@@ -421,6 +412,8 @@ class User:
 
 
 class System:
+    current_version_number: int = None
+
     @classmethod
     def check_updates(cls, note_no_updates=True):  # todo implementeer knop in instellingen GUI
         pysg.popup_no_buttons(
@@ -485,7 +478,6 @@ class System:
             auto_close_duration=2)
 
         restart_program()
-        return None
 
     @classmethod
     def report_crash(cls, description: str | None = None):

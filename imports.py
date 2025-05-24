@@ -2,7 +2,6 @@
 # gemene dependencies
 from __future__ import annotations
 
-from local_deps import PySimpleGUI as pysg
 import json
 import os
 import sys
@@ -47,5 +46,6 @@ def load_config(path="config.json", fallback_restore: str | dict = "{}", except_
 
     print(f"Config at `{path}` loaded.")
     return conf
+
 
 config = load_config(fallback_restore=DEFAULT_CONFIG, except_decode_error=True)

@@ -1,10 +1,12 @@
 # client/main.py
+print("test!")
 import datetime
 from typing import Union
 
 import backend
 import icon
 from imports import *
+import PySimpleGUI as pysg
 import Camillo_GUI_framework
 
 pysg.set_global_icon(icon.icon)
@@ -74,10 +76,8 @@ class UserSelectionWindow(Camillo_GUI_framework.Gui):
 
         if self.event == "-MULTI_SELECTION_MODE_TOGGLE-":
             self.multi_selection_button()
-            return None
         elif self.event == '-SEARCH_BAR_FIELD-':  # if a letter is typed
             self.refresh(search_for_name=True)  # search feature
-            return None
 
         elif self.event == '-namelist-' and self.window["-namelist-"].get_list_values():
             self.selected_items = set(self.values["-namelist-"])
@@ -87,7 +87,7 @@ class UserSelectionWindow(Camillo_GUI_framework.Gui):
             print("last_selection", self.last_selection)
             print("selected_items", self.selected_items)
             if not len_last_selection and not len_selected_items:
-                return None
+                return
             elif len_selected_items == 1:
                 username = list(self.selected_items)[0]
             else:
@@ -100,7 +100,7 @@ class UserSelectionWindow(Camillo_GUI_framework.Gui):
             if self.multi_selection_mode is True:
                 self.window.set_title(
                     f"Leerlingenoverzicht ({len(self.values['-namelist-'])}/{len(self.namelist)} geselecteerd)")
-                return None
+                return
 
             data = backend.User.get_userdata(username=username, include_transactions=True)
             if data is None:
@@ -116,21 +116,19 @@ class UserSelectionWindow(Camillo_GUI_framework.Gui):
             App.set_gui(
                 gui=UserOverviewWindow(user=user, transaction_list=transaction_list)
             )
-            return None
+            return
 
         elif self.event == "-ADD_USER_BUTTON-":
             search_bar_field = self.values["-SEARCH_BAR_FIELD-"]
             filled_in_username = search_bar_field if search_bar_field and not self.window[
                 "-namelist-"].get_list_values() else None
             App.set_gui(gui=AddUserMenu(filled_in_username=filled_in_username))
-            return None
-        return None
 
     def update_search_and_namelist(self, search_for_name: str, namelist: str):
         ...  # todo fixme
 
     # fixme fix scroll reset na TERUGKNOP gebruiken
-    def refresh(self, search_for_name: Union[bool, str] = False, namelist_fetch=False):  # refresh namelist
+    def refresh(self, search_for_name: Union[bool, str] = False, namelist_fetch=False):  # refresh usernamelist
         if search_for_name is True:
             search_for_name = self.values["-SEARCH_BAR_FIELD-"]
         elif type(search_for_name) is str:
@@ -208,12 +206,12 @@ class UserOverviewWindow(Camillo_GUI_framework.Gui):
         for transaction in self.transaction_list:
             date = datetime.date.fromtimestamp(transaction.transaction_timestamp).strftime("%d/%m/%Y")
 
-            # amount = f"{transaction.amount:.2f}"
-            # amount_split = amount.split('.')
-            # if int(amount_split[1]) == 0 or len(amount_split) == 1:
-            #     amount = amount_split[0]
+            # titel + datum = transaction preview
+            amount = f"{transaction.amount:.2f}"
+            amount_split = amount.split('.')
+            if int(amount_split[1]) == 0 or len(amount_split) == 1:
+                amount = amount_split[0]
 
-            # datum + titel = transaction preview
             transaction_preview_list.append(
                 f"{date}  {transaction.title}"
             )
@@ -236,12 +234,10 @@ class UserOverviewWindow(Camillo_GUI_framework.Gui):
             App.back_button()
             assert isinstance(App.current_gui(), UserSelectionWindow)
             App.current_gui().refresh()
-            return None
         elif self.event == pysg.WIN_CLOSE_ATTEMPTED_EVENT:
             # `App.back_button()`  is niet nodig omdat al is ge-called bij `App.update`
             assert isinstance(App.current_gui(), UserSelectionWindow)
             App.current_gui().refresh()
-            return None
 
         elif self.event == '-TRANSACTION_PREVIEW_LIST-' and len(
                 self.window['-TRANSACTION_PREVIEW_LIST-'].get_indexes()) >= 0:
@@ -255,18 +251,14 @@ class UserOverviewWindow(Camillo_GUI_framework.Gui):
             App.set_gui(
                 gui=TransActionDetailsWindow(transaction=transaction, user=self.user)
             )
-            return None
 
         elif self.event == "-SET_SALDO_BUTTON-":
             App.set_gui(
                 gui=SetSaldoMenu(user=self.user)
             )
-            return None
 
         elif self.event == "-OPTIONS_BUTTON-":
             App.set_gui(OptionsMenu(user=self.user))
-            return None
-        return None
 
     def refresh(self, update_transaction_list=True, fetch_saldo=False):
         """
@@ -388,10 +380,10 @@ class SetSaldoMenu(Camillo_GUI_framework.Gui):
 
             amount = backend.check_string_valid_float(self.values["-AMOUNT-"])
             if amount is False:
-                return None
+                return
 
             if not backend.check_valid_saldo(amount):
-                return None
+                return
 
             operation = self.values["-PLUS_MINUS-"]  # of je saldo +bedrag, -bedrag of op bedrag wilt zetten
             if operation == "+":
@@ -420,8 +412,6 @@ class SetSaldoMenu(Camillo_GUI_framework.Gui):
             # `type(App.current_gui())` MOET `UserOverviewWindow` zijn
             assert isinstance(App.current_gui(), UserOverviewWindow)
             App.current_gui().refresh()  # `current_gui` is veranderd door `back_button`
-            return None
-        return None
 
 
 class AddUserMenu(Camillo_GUI_framework.Gui):
@@ -462,13 +452,13 @@ class AddUserMenu(Camillo_GUI_framework.Gui):
 
         if self.event == "OK":
             # voor checken of account name en saldo zijn waardes zijn ingevuld
-            # values = [key for key in self.values.keys() if self.values[key]]
+            values = [key for key in self.values.keys() if self.values[key]]
             # if not {"-ACCOUNT_NAME-", "-SALDO-"}.issubset(set(values)):
             #     return None
             # todo check of dit weghouden werkt.
 
             username: str = self.values["-ACCOUNT_NAME-"]
-            username = username
+            username = username.capitalize()
             saldo = '0' if not self.values["-SALDO-"] or self.values["-SALDO-"] == '0' else self.values["-SALDO-"]
             saldo = backend.check_string_valid_float(saldo)
             if saldo is False:
@@ -534,7 +524,7 @@ class OptionsMenu(Camillo_GUI_framework.Gui):
                                                keep_on_top=True)
             if not new_username:  # fixme
                 self.window.un_hide()
-                return None
+                return
 
             # todo test of hier niet dit moet:
             # if backend.User.get_user_exists_by_username(username=new_username) is True:
@@ -559,7 +549,7 @@ class OptionsMenu(Camillo_GUI_framework.Gui):
                 font=self.font, keep_on_top=True)
             if delete_user != "Yes":
                 self.window.un_hide()
-                return None
+                return
 
             if backend.User.delete_user(user_id=self.user.data.user_id) is False:
                 pysg.popup(f"Gebruiker met naam '{delete_user}' bestaat niet.\n", title="Gebruiker bestaat niet",
@@ -571,7 +561,6 @@ class OptionsMenu(Camillo_GUI_framework.Gui):
 
             App.reset_app()
             return True
-        return None
 
 
 App = backend.App
