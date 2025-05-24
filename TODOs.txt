@@ -1,6 +1,5 @@
 Transactie verwijderen ⚠️ nog #todo! op client side
-
-Als er meerdere gebruikers gelinkt zijn aan een transactie wordt er gevraagd
+Als er meerdere gebruikers gelinkt zijn aan een transactie word er gevraagd
 of deze transactie alleen voor deze gebruiker of voor alle gebruikers moet worden verwijderd.
 Als het antwoord 'alle' is, wordt er nog één keer om bevestiging gevraagd die uitlegt wat de consequenties
 zijn.
