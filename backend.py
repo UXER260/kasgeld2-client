@@ -6,6 +6,7 @@ from __future__ import annotations
 
 
 import copy
+import re
 import time
 import traceback
 from pathlib import Path
@@ -23,7 +24,7 @@ print("current branch :", system.branch)
 print("current version:", system.get_local_version_number())
 
 
-class AdminLoginMenu(Camillo_GUI_framework.Gui):
+class UserLoginMenu(Camillo_GUI_framework.Gui):
     def __init__(self, window_dimensions=(None, None), window_is_popup=True,
                  window_title="Voer gegevens in",
                  restart_on_success=True,
@@ -58,7 +59,7 @@ class AdminLoginMenu(Camillo_GUI_framework.Gui):
             self.window["-PASSWORD-"].update(password_char="•")
 
         if self.event == "OK" and all(self.values):
-            login_field = AdminLoginField(email=self.values["-EMAIL-"], password=self.values["-PASSWORD-"])
+            login_field = UserLoginField(email_address=self.values["-EMAIL-"], password=self.values["-PASSWORD-"])
             succes = User.login(login_field=login_field)
             if not succes:
                 pysg.popup_quick("Gegevens komen niet overeen", auto_close_duration=1, non_blocking=True,
@@ -90,7 +91,7 @@ class App(Camillo_GUI_framework.App):
         if pysg.popup_yes_no("Log in voor toegang", title="De inlog is verlopen",
                              font=get_font(), keep_on_top=True) == "Yes":
 
-            cls.set_gui(gui=AdminLoginMenu(restart_on_success=restart_on_success))
+            cls.set_gui(gui=UserLoginMenu(restart_on_success=restart_on_success))
             return True
         else:
             cls.active = False
@@ -127,8 +128,6 @@ class App(Camillo_GUI_framework.App):
                 font=config["font"])
             return
 
-        System.report_crash()
-
         if isinstance(error, requests.exceptions.HTTPError):
             print(error.response.content)
             print(error.response.status_code)
@@ -149,6 +148,7 @@ class App(Camillo_GUI_framework.App):
             )
 
         else:
+            raise error
             pysg.Popup(
                 f"⚠Er is een programmafout opgetreden.\n"
                 f"Neem contact op met Camillo\n\n"
@@ -156,6 +156,8 @@ class App(Camillo_GUI_framework.App):
                 f"Beschrijving:\n{str(error)}",
                 title=f"Onbekende programmafout", text_color="red", keep_on_top=True, font=config["font"]
             )
+
+        System.report_crash()
 
     @classmethod
     def run(cls):
@@ -178,11 +180,31 @@ def restart_program():
 
 
 class Session(requests.Session):
+    def __init__(self):
+        super().__init__()
+        self.cert_path = "cert.pem"
+        self.cookie_file = Path(config["cookiejar_location"])
+
+        # Load cookies if they exist
+        if self.cookie_file.exists():
+            try:
+                cookies_dict = json.loads(self.cookie_file.read_text())
+                self.cookies = requests.utils.cookiejar_from_dict(cookies_dict)
+            except Exception as e:
+                print("Fout bij laden van cookies:", e)
+
     def request(self, *args, **kwargs):
-        # print("REQUEST", *args)
+        kwargs.setdefault("verify",
+                          self.cert_path)  # dit stukje is crucial. Zorgt ervoor dat requests HTTPS/SSL certificaat van server vertrouwd.
         response = super().request(*args, **kwargs)
-        cookies = requests.utils.dict_from_cookiejar(session.cookies)  # turn cookiejar into dict
-        Path(config["cookiejar_location"]).write_text(json.dumps(cookies))  # save them to file as JSON
+
+        # Save cookies after request
+        try:
+            cookies = requests.utils.dict_from_cookiejar(self.cookies)
+            self.cookie_file.write_text(json.dumps(cookies))
+        except Exception as e:
+            print("Fout bij opslaan van cookies:", e)
+
         return response
 
 
@@ -223,39 +245,37 @@ def check_valid_saldo(saldo: float):
     return True
 
 
-def good_status(response: requests.Response, catch_handled_http_exceptions: Optional[bool] = None,
+def good_status(response: requests.Response, catch_http_exceptions: Optional[bool] = None,
                 restart_on_unauthorized=True):
     # assert restart_on_unauthorized is not True
     """
     Checkt of status code goed is van response.
     :param response: Response om te controleren
     :type response: requests.Response
-    :param catch_handled_http_exceptions:
-    :type catch_handled_http_exceptions:
+    :param catch_http_exceptions: todo
+    :type catch_http_exceptions: bool | None
     :param restart_on_unauthorized: herstart programma wanneer authenticatie is mislukt zodat login popup opkomt
     :type restart_on_unauthorized bool
     :return: None wanneer sessie ongeldig is, True wanneer alles goed is en False wanneer er iets niet goed is
     :rtype: bool | None
     """
-    catch_handled_http_exceptions = catch_handled_http_exceptions if catch_handled_http_exceptions is not None else \
-        config["catch_handled_http_exceptions"]
-    # print("catch_handled_http_exceptions", catch_handled_http_exceptions, config["catch_handled_http_exceptions"])
-    # print(f"CONTENT {response.content}", response.status_code)
+    catch_http_exceptions = catch_http_exceptions if catch_http_exceptions is not None else \
+        config["catch_http_exceptions"]
     fout = False
     error = None
-    if catch_handled_http_exceptions:
+    if catch_http_exceptions:
         try:
             response.raise_for_status()
         except requests.exceptions.HTTPError as e:
-            print("CONTENT:", response.content)
-            error = e
+            print("Exception:", response.content)
             fout = True
+            error = e
     else:
         response.raise_for_status()
 
     if fout:
         if response.status_code == 404:
-            print("url bestaat niet")
+            print("endpoint bestaat niet")
             return None
 
         elif response.status_code == 401:
@@ -281,18 +301,23 @@ class User:
         self.data = data
 
     @staticmethod
-    def check_session_valid(catch_handled_http_exceptions=None, restart_on_unauthorized=False):
+    def check_session_valid(restart_on_unauthorized=False):
         try:
-            return good_status(session.get(config["request_url"]),
-                               catch_handled_http_exceptions=catch_handled_http_exceptions,
+            return good_status(session.get(config["request_url"]), catch_http_exceptions=True,
                                restart_on_unauthorized=restart_on_unauthorized)
         except requests.exceptions.ConnectionError:
             return None
 
     @staticmethod
-    def login(login_field: AdminLoginField, catch_handled_http_exceptions=None, restart_on_unauthorized=False):
+    def valid_email(email: str):
+        if ' ' in email:
+            return False
+        return bool(re.match(r"[^@]+@[^@]+\.[^@]+", email))
+
+    @staticmethod
+    def login(login_field: UserLoginField, catch_http_exceptions=None, restart_on_unauthorized=False):
         response = session.post(config["request_url"] + "login", json=login_field.model_dump())
-        return good_status(response, catch_handled_http_exceptions=catch_handled_http_exceptions,
+        return good_status(response, catch_http_exceptions=True,
                            restart_on_unauthorized=restart_on_unauthorized) is True
 
     def set_saldo(self, transaction_details: TransactionField):
@@ -326,10 +351,10 @@ class User:
         self.data.saldo = float(new_saldo)
         return self.data.saldo
 
-    def rename(self, new_username: str, catch_handled_http_exceptions=None) -> Optional[bool]:
+    def rename(self, new_username: str, catch_http_exceptions=None) -> Optional[bool]:
         params = {"user_id": self.data.user_id, "new_username": new_username}
         response = session.put(config["request_url"] + "rename_user", params=params)
-        status = good_status(response, catch_handled_http_exceptions=catch_handled_http_exceptions)
+        status = good_status(response, catch_http_exceptions=catch_http_exceptions)
         # todo gebruik deze logica meer in code
         if status is True:
             self.data.name = new_username
@@ -345,9 +370,9 @@ class User:
         return [RawTransactionData(**transaction) for transaction in raw_data]
 
     @staticmethod
-    def get_user_exists_by_username(username: str, catch_handled_http_exceptions=None):
+    def get_user_exists_by_username(username: str, catch_http_exceptions=None):
         response = session.get(config["request_url"] + "get_user_exists_by_username", params={"username": username})
-        status = good_status(response, catch_handled_http_exceptions=catch_handled_http_exceptions)
+        status = good_status(response, catch_http_exceptions=catch_http_exceptions)
         return status if status in [False, None] else response.json()
 
     @staticmethod
@@ -355,13 +380,19 @@ class User:
         return session.get(config["request_url"] + "get_user_exists_by_id", params={"user_id": user_id}).json()
 
     @staticmethod
-    def add_user(userdata: UserSignupData, catch_handled_http_exceptions=None) -> bool | None:
+    def add_user(userdata: UserSignupField, catch_http_exceptions=None) -> bool | None:
         response = session.post(config["request_url"] + "add_user", json=userdata.model_dump())
-        status = good_status(response, catch_handled_http_exceptions=catch_handled_http_exceptions)
+        status = good_status(response, catch_http_exceptions=catch_http_exceptions)
         if status is True:
             return True
 
         if response.status_code == 409:  # conflict met bestaande gebruiker
+            pysg.popup(
+                f"Gebruiker met naam '{userdata.name}' bestaat al.\nKies een andere naam.",
+                title="Gebruiker bestaat al",
+                font=get_font(),
+                keep_on_top=True
+            )
             return None
         else:
             return False
@@ -372,7 +403,7 @@ class User:
 
     @classmethod
     def get_userdata(cls, user_id: int = None, username: str = None,
-                     include_transactions=False, catch_handled_http_exceptions=None):
+                     include_transactions=False, catch_http_exceptions=None):
 
         if [user_id, username].count(None) != 1:
             raise ValueError(
@@ -382,7 +413,7 @@ class User:
         # print(params)
 
         response = session.get(config["request_url"] + "get_userdata", params=params)
-        status = good_status(response, catch_handled_http_exceptions=catch_handled_http_exceptions)
+        status = good_status(response, catch_http_exceptions=catch_http_exceptions)
         if not status:
             return status
 
@@ -393,10 +424,10 @@ class User:
         }
 
     @staticmethod
-    def get_username_list(catch_handled_http_exceptions=None, restart_on_unauthorized=True):
+    def get_username_list(catch_http_exceptions=None, restart_on_unauthorized=True):
         response = session.get(config["request_url"] + "get_username_list")
-        return response.json() if good_status(response, restart_on_unauthorized=restart_on_unauthorized,
-                                              catch_handled_http_exceptions=catch_handled_http_exceptions) is True \
+        return response.json() if good_status(response, catch_http_exceptions=catch_http_exceptions,
+                                              restart_on_unauthorized=restart_on_unauthorized) is True \
             else ["Geen geldige verbinding"]
 
     @classmethod
@@ -412,12 +443,12 @@ class User:
     #                         params=params, json=transaction_details.model_dump()).json()
 
     @staticmethod
-    def delete_user(user_id: int, catch_handled_http_exceptions=None) -> bool:
+    def delete_user(user_id: int, catch_http_exceptions=None) -> bool:
         response = session.delete(config["request_url"] + "delete_user", params={"user_id": user_id})
-        status = good_status(response, catch_handled_http_exceptions=catch_handled_http_exceptions)
+        status = good_status(response, catch_http_exceptions=catch_http_exceptions)
         return status if status in [False, None] else True
         # return True if good_status(
-        # response, catch_handled_http_exceptions=catch_handled_http_exceptions) is True else False
+        # response, catch_http_exceptions=catch_http_exceptions) is True else False
 
 
 class System:
@@ -514,9 +545,14 @@ class System:
 
     @classmethod
     def send_crashreport(cls, crash_report):
-        response = session.post(config["request_url"] + "report_crash",
-                                json=crash_report)
-        response.raise_for_status()
+        try:
+            response = session.post(config["request_url"] + "report_crash",
+                                    json=crash_report)
+            response.raise_for_status()
+        except (requests.exceptions.HTTPError, requests.exceptions.ConnectionError,
+                requests.exceptions.RequestException):
+            return False
+
         return response.status_code == 200
 
 

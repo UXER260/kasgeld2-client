@@ -1,3 +1,15 @@
+kiezen hoe SSL cert.pem moet worden gebruikt. Bijvoorbeeld door het te committen naar git of dat het later apart moet worden toegevoegd/ingesteld voor veiligheidsredenen.
+
+email invullen bij user maken
+
+kan inloggen met username
+
+Users met admin flag krijgen andere interface, zoals:
+de optie een aangemaakte gebruiker admin te maken,
+kasgeld voor gebruiker uit te schakelen
+
+Maak UserMultiSelectionWindow af en implementeer.
+
 Transactie verwijderen ⚠️ nog #todo! op client side
 
 Als er meerdere gebruikers gelinkt zijn aan een transactie wordt er gevraagd

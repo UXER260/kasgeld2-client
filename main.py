@@ -191,6 +191,20 @@ class UserSelectionWindow(Camillo_GUI_framework.Gui):
         #     self.window["-namelist-"].update(self.namelist)
 
 
+class UserMultiSelectionWindow(UserSelectionWindow):
+    def layout(self) -> list[list[pysg.Element]]:
+        namelist = self.namelist if self.namelist is not None else [""]
+        return [
+            [pysg.InputText("", font=self.font, expand_x=True, key='-SEARCH_BAR_FIELD-',
+                            enable_events=True), pysg.Button("👤", font=self.font)],
+            [pysg.Listbox(namelist, font=self.font, expand_x=True, expand_y=True,
+                          enable_events=True, key='-namelist-',
+                          right_click_menu=[None, ["Select", "Select all users"]])],
+            [pysg.Button(self.multi_selection_button_text(), font=self.font, key="-MULTI_SELECTION_MODE_TOGGLE-"),
+             pysg.Button("Verder", font=self.font, expand_x=True, key="-CONTINUE_BUTTON-")]
+        ]
+
+
 class UserOverviewWindow(Camillo_GUI_framework.Gui):
     def __init__(self, user: backend.User, transaction_list: list[backend.RawTransactionData],
                  window_title=None, *args,
@@ -437,12 +451,20 @@ class AddUserMenu(Camillo_GUI_framework.Gui):
         super().__init__(window_title=window_title, window_dimensions=window_dimensions, *args, **kwargs)
 
     def layout(self) -> list[list[pysg.Element]]:
+        # todo andere interface wanneer wel/niet admin
         current_date = datetime.date.today().strftime('%d-%m-%Y')
 
         return [
-            [pysg.Text(f"Naam*", font=self.font, expand_x=True, expand_y=True), pysg.Push(),
+            [pysg.Text(f"Naam*", tooltip="Kan zoals email gebruikt worden om in te loggen", font=self.font,
+                       expand_x=True, expand_y=True), pysg.Push(),
              pysg.InputText(self.filled_in_username, font=self.font, size=(15, 0), key='-ACCOUNT_NAME-')],
-            [pysg.Text(f"Saldo*", font=self.font, expand_x=True, expand_y=True), pysg.Push(),
+            [pysg.Text(f"e-mail*", tooltip="Nodig om in te loggen, wachtwoord in te stellen en te resetten",
+                       font=self.font, expand_x=True, expand_y=True), pysg.Push(),
+             pysg.InputText(self.filled_in_username, font=self.font, size=(15, 0), key='-EMAIL-')],
+            [pysg.Text(f"wachtwoord*", tooltip="Nodig om in te loggen. Kan later nog gereset worden met email",
+                       font=self.font, expand_x=True, expand_y=True), pysg.Push(),
+             pysg.InputText(self.filled_in_username, font=self.font, size=(15, 0), key='-PASSWORD-')],
+            [pysg.Text(f"Saldo", font=self.font, expand_x=True, expand_y=True), pysg.Push(),
              pysg.InputText("", font=self.font, size=(15, 0), key='-SALDO-')],
             [pysg.Text(f"Aanmelddatum", tooltip="Sinds wanneer deze leerling leerling op DVR is", font=self.font,
                        expand_x=True, expand_y=True), pysg.Push(),
@@ -460,52 +482,67 @@ class AddUserMenu(Camillo_GUI_framework.Gui):
     def update(self):
         super().update()
 
-        if self.event == "OK":
-            # voor checken of account name en saldo zijn waardes zijn ingevuld
-            # values = [key for key in self.values.keys() if self.values[key]]
-            # if not {"-ACCOUNT_NAME-", "-SALDO-"}.issubset(set(values)):
-            #     return None
-            # todo check of dit weghouden werkt.
+        if self.event != "OK":
+            return None
 
-            username: str = self.values["-ACCOUNT_NAME-"]
-            username = username
-            saldo = '0' if not self.values["-SALDO-"] or self.values["-SALDO-"] == '0' else self.values["-SALDO-"]
-            saldo = backend.check_string_valid_float(saldo)
-            if saldo is False:
-                return
+        username = self.values["-ACCOUNT_NAME-"]
+        if not username:
+            pysg.popup("Voer een gebruikersnaam in.", title="Missende gebruikersnaam", font=self.font, keep_on_top=True)
+            return None
 
-            if not backend.check_valid_saldo(saldo):
-                return
+        email_address = self.values["-EMAIL-"]
+        if not backend.User.valid_email(email_address):
+            pysg.popup("Voer een geldig e-mailadres in.", title="Ongeldig e-mailadres", font=self.font,
+                       keep_on_top=True)
+            return None
 
-            signup_timestamp = None
+        saldo = backend.check_string_valid_float(self.values["-SALDO-"] or '0')
+        if saldo is False or not backend.check_valid_saldo(saldo):
+            return None
 
-            if self.values["-SIGNUP_DATE-"]:
-                signup_timestamp = datetime.datetime.strptime(self.values["-SIGNUP_DATE-"], "%d-%m-%Y").timestamp()
+        password = self.values["-PASSWORD-"]
+        if not password:
+            pysg.popup("Voer een wachtwoord in.", title="Missend wachtwoord", font=self.font, keep_on_top=True)
+            return None
 
+        signup_timestamp = None
+        # Als aanmelddatum is ingevuld, converteer naar timestamp
+        if self.values["-SIGNUP_DATE-"]:
+            signup_timestamp = datetime.datetime.strptime(
+                self.values["-SIGNUP_DATE-"], "%d-%m-%Y"
+            ).timestamp()
+
+        # Omdat het startsaldo nul is en er geen expliciete berekendatum is ingevuld,
+        # gaat het ervan uit dat er nog niets is gebeurd, dus wordt de berekendatum gelijk aan de aanmelddatum.
+        if saldo == 0 and not self.values["-CALCULATION_START_DATE-"]:
+            calculation_start_timestamp = signup_timestamp
+        # Als er een berekendatum is opgegeven, gebruik die
+        elif self.values["-CALCULATION_START_DATE-"]:
+            calculation_start_timestamp = datetime.datetime.strptime(
+                self.values["-CALCULATION_START_DATE-"], "%d-%m-%Y"
+            ).timestamp()
+        else:
+            # Anders geen berekendatum beschikbaar
             calculation_start_timestamp = None
-            if saldo == 0 and not self.values["-CALCULATION_START_DATE-"]:
-                calculation_start_timestamp = signup_timestamp
-            elif self.values["-CALCULATION_START_DATE-"]:
-                calculation_start_timestamp = datetime.datetime.strptime(self.values["-CALCULATION_START_DATE-"],
-                                                                         "%d-%m-%Y").timestamp()
 
-            user = backend.UserSignupData(
-                name=username,
-                saldo=saldo,
-                signup_timestamp=signup_timestamp,
-                last_update_timestamp=calculation_start_timestamp
-            )
+        user = backend.UserSignupField(
+            name=username,
+            email_address=email_address,
+            password=password,
+            saldo=saldo,
+            signup_timestamp=signup_timestamp,
+            last_update_timestamp=calculation_start_timestamp
+        )
 
-            result = backend.User.add_user(userdata=user)
-            if result is None:  # gebruiker bestaat al
-                pysg.popup(f"Gebruiker met naam '{username}' bestaat al.\n"
-                           f"Kies een andere naam.", title="Gebruiker bestaat al", font=self.font,
-                           keep_on_top=True)
-                return
+        result = backend.User.add_user(userdata=user)
+        if result is not True:
+            return False
 
-            App.back_button()
-            assert isinstance(App.current_gui(), UserSelectionWindow)
-            App.current_gui().refresh(search_for_name=user.name, namelist_fetch=True)
+        # Bij succes, ga terug naar vorige scherm en ververs gebruikerslijst
+        App.back_button()
+        assert isinstance(App.current_gui(), UserSelectionWindow)
+        App.current_gui().refresh(search_for_name=user.name, namelist_fetch=True)
+        return None
 
 
 class OptionsMenu(Camillo_GUI_framework.Gui):
@@ -546,9 +583,10 @@ class OptionsMenu(Camillo_GUI_framework.Gui):
                 pysg.popup(f"Gebruiker met de naam '{self.user.data.name}' bestaat niet meer.",
                            title="Gebruiker bestaat niet meer", font=self.font, keep_on_top=True)
             # het is niet meer nodig om nu het window weer tevoorschijn te halen omdat het toch wordt gesloten
-            App.back_button()
-            assert isinstance(App.current_gui(), UserOverviewWindow)
-            App.current_gui().refresh()
+
+            App.reset_app()
+            assert isinstance(App.current_gui(), UserSelectionWindow)
+            App.current_gui().refresh(search_for_name=self.user.data.name, namelist_fetch=True)
             return True
 
         elif self.event == "-DELETE_BUTTON-":
@@ -568,7 +606,6 @@ class OptionsMenu(Camillo_GUI_framework.Gui):
                 return False
 
             # het is niet meer nodig om nu het window weer tevoorschijn te halen omdat het toch wordt gesloten
-
             App.reset_app()
             return True
         return None
