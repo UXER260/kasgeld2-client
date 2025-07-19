@@ -1,4 +1,7 @@
 # client/main.py
+
+print("HET WERKT!")
+
 import datetime
 from typing import Union
 

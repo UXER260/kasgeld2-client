@@ -4,6 +4,16 @@ from __future__ import annotations
 
 # Gebaseerd op ~/PycharmProjects/PythonProjects/BankKasGeldSchool/api/client/old4_fail/bank.py
 
+import os
+import tempfile
+
+# Create a temporary Git config file with the safe.directory setting
+temp_git_config = tempfile.NamedTemporaryFile(delete=False, mode="w", suffix=".gitconfig")
+temp_git_config.write(f'[safe]\n\tdirectory = {os.path.dirname(__file__)}\n')
+temp_git_config.close()
+
+# Set environment variable so all Git commands use this config only during runtime
+os.environ['GIT_CONFIG_GLOBAL'] = temp_git_config.name
 
 import copy
 import re
@@ -303,7 +313,9 @@ class User:
     @staticmethod
     def check_session_valid(restart_on_unauthorized=False):
         try:
-            return good_status(session.get(config["request_url"]), catch_http_exceptions=True,
+            response = session.get(config["request_url"])
+            print(response.content)
+            return good_status(response, catch_http_exceptions=True,
                                restart_on_unauthorized=restart_on_unauthorized)
         except requests.exceptions.ConnectionError:
             return None
