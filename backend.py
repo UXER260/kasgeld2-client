@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 # Gebaseerd op ~/PycharmProjects/PythonProjects/BankKasGeldSchool/api/client/old4_fail/bank.py
-
+import argparse
 import os
 import tempfile
 
@@ -84,7 +84,7 @@ class UserLoginMenu(Camillo_GUI_framework.Gui):
                 # pysg.popup_no_buttons("succes!", non_blocking=True, auto_close=True, auto_close_duration=.75,
                 #                       no_titlebar=True, font=self.font)
                 # return True
-                self.menu.reset_app()
+                self.app.reset_app(restart=self.restart_on_success, extra_arguments=['--no-update'])
                 pysg.popup_no_buttons("succes!", non_blocking=True, auto_close=True, auto_close_duration=.5,
                                       no_titlebar=True, font=self.font, keep_on_top=True)
                 return None
@@ -95,6 +95,7 @@ class UserLoginMenu(Camillo_GUI_framework.Gui):
 
 
 class App(Camillo_GUI_framework.App):
+    current_session_user: RawUserData
 
     @classmethod
     def login_prompt(cls, restart_on_success=True):
@@ -108,15 +109,20 @@ class App(Camillo_GUI_framework.App):
             return False
 
     @classmethod
-    def on_run(cls):
-        System.check_updates(note_no_updates=False)
-        # system.deploy_latest_update()
+    def on_run(cls, check_updates: bool = True):
+        if check_updates:
+            print("Checking for updates...")
+            System.check_updates(note_no_updates=False)
+        else:
+            print("Skipped update check. (--no-update argument)")
+        # system.deploy_latest_update()  # alternatieve geen-GUI versie.
         # als nieuwe update beschikbaar en gedownload was,
         # dan zal dit programma nu herstarten en alle code hieronder niet meer worden ge-execute
 
-        valid_session = User.check_session_valid()
+        valid_session = User.get_userdata_current_session()
+        cls.current_session_user = valid_session
         if valid_session is False:
-            if cls.login_prompt(restart_on_success=False) is False:
+            if cls.login_prompt(restart_on_success=True) is False:
                 return False
 
         # als het None is dan niet inloggen, maar direct naar kies menu waar gebruiker wordt verteld dat geen connectie
@@ -129,6 +135,7 @@ class App(Camillo_GUI_framework.App):
         if not isinstance(error, Exception):
             return
 
+        System.report_crash()
         if isinstance(error, requests.exceptions.ConnectionError):
             pysg.Popup(
                 "Verbinding niet (meer) beschikbaar.\n"
@@ -158,20 +165,29 @@ class App(Camillo_GUI_framework.App):
             )
 
         else:
-            raise error
-            pysg.Popup(
+            description = pysg.PopupGetText(
                 f"⚠Er is een programmafout opgetreden.\n"
                 f"Neem contact op met Camillo\n\n"
                 f"Type: {error.__class__.__name__}\n"
-                f"Beschrijving:\n{str(error)}",
+                f"Beschrijving:\n{str(error)}\n\n"
+                f"Graag hier een beschrijving van acties\n"
+                f"die tot dit probleem liepen:",
                 title=f"Onbekende programmafout", text_color="red", keep_on_top=True, font=config["font"]
             )
 
-        System.report_crash()
+            System.report_crash(description=description)
+
+            if pysg.PopupYesNo(
+                    "Programma herstarten?",
+                    title=f"Onbekende programmafout", text_color="red", keep_on_top=True, font=config["font"]
+            ) == 'Yes':
+                cls.reset_app(restart=True)
+            else:
+                raise error
 
     @classmethod
-    def run(cls):
-        cls.on_run()
+    def run(cls, check_updates: bool = True):
+        cls.on_run(check_updates=check_updates)
 
         while cls.active:
             if not config["use_global_exception_handler"]:
@@ -314,9 +330,20 @@ class User:
     def check_session_valid(restart_on_unauthorized=False):
         try:
             response = session.get(config["request_url"])
-            print(response.content)
             return good_status(response, catch_http_exceptions=True,
                                restart_on_unauthorized=restart_on_unauthorized)
+        except requests.exceptions.ConnectionError:
+            return None
+
+    @staticmethod
+    def get_userdata_current_session(restart_on_unauthorized=False):
+        try:
+            response = session.get(config["request_url"] + "get_userdata_current_session")
+            print(response.content)
+            if good_status(response, catch_http_exceptions=True,
+                           restart_on_unauthorized=restart_on_unauthorized):
+                return RawUserData(**response.json()["raw_userdata"])
+            return False
         except requests.exceptions.ConnectionError:
             return None
 
@@ -526,6 +553,8 @@ class System:
             font=get_font(scale=0.75),
             title="Bijwerken voltooid", non_blocking=False, auto_close=True,
             auto_close_duration=2)
+
+        system.update_requirements(requirements_file="requirements.txt")
 
         restart_program()
         return None

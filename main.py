@@ -1,7 +1,5 @@
 # client/main.py
-
-print("HET WERKT!")
-
+import argparse
 import datetime
 from typing import Union
 
@@ -11,6 +9,10 @@ from imports import *
 import Camillo_GUI_framework
 
 pysg.set_global_icon(icon.icon)
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--no-update", action="store_true", help="Start without checking for updates")
+args, unknown_args = parser.parse_known_args()
 
 
 class UserSelectionWindow(Camillo_GUI_framework.Gui):
@@ -43,10 +45,11 @@ class UserSelectionWindow(Camillo_GUI_framework.Gui):
         self.window["-MULTI_SELECTION_MODE_TOGGLE-"].update(self.multi_selection_button_text())
         if self.multi_selection_mode is True:
             self.window.set_title(
-                f"Leerlingenoverzicht ({len(self.values['-namelist-'])}/{len(self.namelist)} geselecteerd)")
+                f"Leerlingenoverzicht ({len(self.values['-namelist-'])}/{len(self.namelist)} geselecteerd) | Ingelogd als `{self.app.current_session_user.name}`")
             self.window["-namelist-"].Widget.config(selectmode=self.default_multi_select_mode)
         else:
-            self.window.set_title(f"Leerlingenoverzicht (totaal {len(self.namelist)})")
+            self.window.set_title(
+                f"Leerlingenoverzicht (totaal {len(self.namelist)}) | Ingelogd als `{self.app.current_session_user.name}`")
             self.window["-namelist-"].Widget.config(selectmode=self.default_single_select_mode)
 
             # if self.window["-namelist-"].get_list_values():
@@ -102,7 +105,7 @@ class UserSelectionWindow(Camillo_GUI_framework.Gui):
             print(self.selected_index)
             if self.multi_selection_mode is True:
                 self.window.set_title(
-                    f"Leerlingenoverzicht ({len(self.values['-namelist-'])}/{len(self.namelist)} geselecteerd)")
+                    f"Leerlingenoverzicht ({len(self.values['-namelist-'])}/{len(self.namelist)} geselecteerd) | Ingelogd als `{self.app.current_session_user.name}`")
                 return None
 
             data = backend.User.get_userdata(username=username, include_transactions=True)
@@ -151,7 +154,8 @@ class UserSelectionWindow(Camillo_GUI_framework.Gui):
         # print(self.namelist)
         namelist_changed = new_namelist != self.namelist
         self.namelist = new_namelist
-        self.window.set_title(f"Leerlingenoverzicht (totaal {len(self.namelist)})")
+        self.window.set_title(
+            f"Leerlingenoverzicht (totaal {len(self.namelist)}) | Ingelogd als `{self.app.current_session_user.name}`")
 
         if search_for_name is not None or namelist_changed:
             print("search_for_name", f"'{search_for_name}'")
@@ -616,4 +620,4 @@ class OptionsMenu(Camillo_GUI_framework.Gui):
 
 App = backend.App
 App.place_start_gui(UserSelectionWindow)
-App.run()
+App.run(check_updates=not args.no_update)

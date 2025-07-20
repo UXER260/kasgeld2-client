@@ -12,9 +12,11 @@ def get_current_branch():
 branch = get_current_branch()
 
 
-def restart_program():
+def restart_program(extra_arguments=None):
+    if extra_arguments is None:
+        extra_arguments = []
     python = sys.executable
-    os.execv(python, [python] + sys.argv)
+    os.execv(python, [python] + sys.argv + extra_arguments)
 
 
 def fetch_changes():

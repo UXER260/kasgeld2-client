@@ -10,7 +10,7 @@ OPTIONS = {
     'iconfile': None,  # Optional: add an .icns icon
     'plist': {
         'CFBundleName': 'KasgeldApp',
-        'CFBundleShortVersionString': 'v44.0.0-dev',
+        'CFBundleShortVersionString': 'v5.44.0-dev',
         'CFBundleIdentifier': 'com.camillodejong.kasgeldapp',
     },
 }

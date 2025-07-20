@@ -3,6 +3,7 @@
 from typing import Optional, Union
 
 import backend
+import system
 from imports import *
 
 pysg.theme(config["theme"])
@@ -26,7 +27,7 @@ class App:
             cls.delete_gui(index=0)
 
     @classmethod
-    def reset_app(cls, restart=False, start_gui_init_kwargs: Optional[dict] = None) -> None:
+    def reset_app(cls, restart=False, start_gui_init_kwargs: Optional[dict] = None, extra_arguments=None) -> None:
         """
         App herstart als cls.start_gui None is of als param restart True is,
         anders sluit alle Guis en opent cls.start_gui
@@ -39,12 +40,13 @@ class App:
         :rtype: None
         """
 
-        if cls.start_gui is not None or restart is True:
+        if extra_arguments is None:
+            extra_arguments = []
+        if restart or cls.start_gui is None:
+            system.restart_program(extra_arguments=extra_arguments)
+        else:
             cls.set_start_gui(start_gui_init_kwargs=start_gui_init_kwargs)
             cls.clear_all_guis(skip_current_gui=True)
-        else:
-            python = sys.executable
-            os.execv(python, [python] + sys.argv)
 
     @classmethod
     def place_start_gui(cls, start_gui: type["Gui"], start_gui_init_kwargs: Optional[dict] = None) -> None:
@@ -92,7 +94,7 @@ class App:
         """
 
         cls.guis.append(gui)
-        cls.current_gui().menu = cls
+        cls.current_gui().app = cls
 
     @classmethod
     def calculate_new_window_pos(cls, gui_old: "Gui", gui_new: "Gui"):
@@ -187,7 +189,7 @@ class Gui:
             font = backend.get_font()
 
         self.window: Optional[pysg.Window] = None
-        self.menu: Optional[type(App)] = None
+        self.app: Optional[type(App)] = None
 
         self.window_title = window_title
         self.window_dimensions = window_dimensions
@@ -270,7 +272,7 @@ class Gui:
         self.event, self.values = self.window.read()
         if self.event == pysg.WIN_CLOSE_ATTEMPTED_EVENT:
             self.on_close()
-            self.menu.back_button()
+            self.app.back_button()
 
         return self.event, self.values
 
