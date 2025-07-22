@@ -1,19 +1,25 @@
+# Gebaseerd op ~/PycharmProjects/PythonProjects/BankKasGeldSchool/api/client/old4_fail/bank.py
 # client/backend.py
 # Bevat alle functies voor communicatie met server
 from __future__ import annotations
 
-# Gebaseerd op ~/PycharmProjects/PythonProjects/BankKasGeldSchool/api/client/old4_fail/bank.py
-import argparse
 import os
 import tempfile
 
-# Create a temporary Git config file with the safe.directory setting
-temp_git_config = tempfile.NamedTemporaryFile(delete=False, mode="w", suffix=".gitconfig")
-temp_git_config.write(f'[safe]\n\tdirectory = {os.path.dirname(__file__)}\n')
+# Get the directory of the current script
+safe_dir = os.path.dirname(os.path.abspath(__file__))
+
+# Git prefers forward slashes on all platforms, even on windows.
+safe_dir_git = safe_dir.replace("\\", "/")
+temp_git_config = tempfile.NamedTemporaryFile(delete=False, mode="w", suffix=".gitconfig", encoding="utf-8",
+                                              newline="\n")
+
+# Create a temporary Git config fil
+temp_git_config.write(f"[safe]\n\tdirectory = {safe_dir_git}\n")
 temp_git_config.close()
 
-# Set environment variable so all Git commands use this config only during runtime
-os.environ['GIT_CONFIG_GLOBAL'] = temp_git_config.name
+# Make Git use this config during runtime
+os.environ["GIT_CONFIG_GLOBAL"] = temp_git_config.name
 
 import copy
 import re
@@ -135,12 +141,10 @@ class App(Camillo_GUI_framework.App):
         if not isinstance(error, Exception):
             return
 
-        System.report_crash()
         if isinstance(error, requests.exceptions.ConnectionError):
             pysg.Popup(
-                "Verbinding niet (meer) beschikbaar.\n"
-                "Zorg ervoor dat je verbonden bent met het WiFi netwerk 'De Vrije Ruimte'\n\n"
-                "Check je connectie en probeer het opnieuw.", title="Geen verbinding""",
+                "Zorg ervoor dat je verbonden bent met\nhet WiFi netwerk 'De Vrije Ruimte'\n\nGraag melden aan Camillo,\nals dit probleem zich voor blijft doen."
+                , title="Verbinding mislukt. Check je connectie en probeer het opnieuw.""",
                 keep_on_top=True,
                 font=config["font"])
             return
@@ -184,6 +188,9 @@ class App(Camillo_GUI_framework.App):
                 cls.reset_app(restart=True)
             else:
                 raise error
+
+        System.report_crash()
+
 
     @classmethod
     def run(cls, check_updates: bool = True):
