@@ -1,3 +1,11 @@
+Als je op enter drukt bij search bar dan probeert data van dat persoon direct te verkrijgen (ook admins)
+
+In instellingen-knopje als op drukt krijg je je eigen kasgeld overzicht
+
+In instellingen voor elke leerling (alleen beschikbaar voor admins) toggles/opties voor instellingen gebruiker
+
+Admin info alleen beschikbaar voor admins
+
 Kiezen hoe SSL cert.pem moet worden gebruikt. Bijvoorbeeld door het te committen naar git of dat het later apart moet worden toegevoegd/ingesteld voor veiligheidsredenen.
 - Idee: Activatie code die cert.pem decrypt. Deze code heb ik bedacht/gegeneerd en die geef ik aan iedereen die toegang nodig heeft tot het systeem.
 Zorg er wel voor dat client cert.pem absoluut nodig heeft voor connectie.

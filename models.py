@@ -29,6 +29,8 @@ class RawUserData(BaseModel):  # voor data direct uit database
     update_kasgeld: bool = True
     signup_timestamp: Optional[int] = None
     last_update_timestamp: Optional[int] = None
+    admin: bool = False
+    banned: bool = False
 
 
 class TransactionField(BaseModel):
