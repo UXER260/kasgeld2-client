@@ -47,4 +47,4 @@ class RawTransactionData(BaseModel):
     amount: float
     transaction_timestamp: int
     record_creation_timestamp: int
-    user_id: int
+    user_id: Optional[int] = None

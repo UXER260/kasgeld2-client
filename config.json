@@ -9,7 +9,10 @@
   "window_edge_margin": [15, 15],
   "theme": "SystemDefaultForReal",
   "font": ["Helvetica", 35],
-  "item_separation": ["-", 80],
+  "item_separation": [
+    "-",
+    100
+  ],
   "catch_http_exceptions": false,
   "use_global_exception_handler": false
 }

@@ -488,6 +488,19 @@ class User:
     #     return session.post(config["request_url"] + "generate_transaction",
     #                         params=params, json=transaction_details.model_dump()).json()
 
+    def delete_transaction(self, transaction_id: int, catch_http_exceptions=None):
+        return User.delete_transaction_by_id(self.data.user_id, transaction_id,
+                                             catch_http_exceptions=catch_http_exceptions)
+
+    @staticmethod
+    def delete_transaction_by_id(user_id: int, transaction_id: int, catch_http_exceptions=None):
+        params = {"user_id": user_id, "transaction_id": transaction_id}
+        response = session.delete(config["request_url"] + "delete_transaction", params=params)
+        if good_status(response, catch_http_exceptions=catch_http_exceptions) is not True:
+            return False
+        return True
+
+
     @staticmethod
     def delete_user(user_id: int, catch_http_exceptions=None) -> bool:
         response = session.delete(config["request_url"] + "delete_user", params={"user_id": user_id})

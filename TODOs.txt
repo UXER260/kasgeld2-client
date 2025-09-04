@@ -1,6 +1,10 @@
+Transactie verwijderen voor alle gebruikers of één gebruiker kies menu
+
 Als je op enter drukt bij search bar dan probeert data van dat persoon direct te verkrijgen (ook admins)
 
-In instellingen-knopje als op drukt krijg je je eigen kasgeld overzicht
+als je geen admin bent opent automatisch eigen info venster (gebruiker versie, zonder knoppen voor saldo veranderen)
+
+In instellingen-knopje als op drukt krijg je je eigen kasgeld overzicht (shortcut)
 
 In instellingen voor elke leerling (alleen beschikbaar voor admins) toggles/opties voor instellingen gebruiker
 
@@ -19,8 +23,6 @@ de optie een aangemaakte gebruiker admin te maken,
 kasgeld voor gebruiker uit te schakelen
 
 Maak UserMultiSelectionWindow af en implementeer.
-
-Transactie verwijderen ⚠️ nog #todo! op client side
 
 Als er meerdere gebruikers gelinkt zijn aan een transactie wordt er gevraagd
 of deze transactie alleen voor deze gebruiker of voor alle gebruikers moet worden verwijderd.

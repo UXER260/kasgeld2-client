@@ -326,6 +326,19 @@ class TransActionDetailsWindow(Camillo_GUI_framework.Gui):
         if self.event == "-BACK_BUTTON-":
             App.back_button()
 
+        if self.event == "-DELETE_TRANSACTION_BUTTON-":
+            if pysg.popup_yes_no(
+                    f"Weet je zeker dat je de transactie `{self.transaction.title}` wilt verwijderen?\n"
+                    f"Dit kan niet ongedaan worden gemaakt.", title="Verwijder Transactie",
+                    font=self.font, keep_on_top=True) != "Yes":
+                return None
+            self.user.delete_transaction(self.transaction.transaction_id)
+            App.back_button()
+            assert isinstance(App.current_gui(), UserOverviewWindow)
+            App.current_gui().refresh(fetch_saldo=True)
+
+        return None
+
     def layout(self) -> list[list[pysg.Element]]:
         transaction_datetime = datetime.datetime.fromtimestamp(self.transaction.transaction_timestamp).strftime(
             "%d-%m-%Y %H:%M")
@@ -607,7 +620,8 @@ class OptionsMenu(Camillo_GUI_framework.Gui):
                 return None
 
             if backend.User.delete_user(user_id=self.user.data.user_id) is False:
-                pysg.popup(f"Gebruiker met naam '{delete_user}' bestaat niet.\n", title="Gebruiker bestaat niet",
+                pysg.popup(f"Gebruiker met naam '{self.user.data.name}' bestaat niet.\n",
+                           title="Gebruiker bestaat niet",
                            font=self.font, keep_on_top=True)
                 self.window.un_hide()
                 return False
