@@ -6,18 +6,22 @@ import json
 import os
 import sys
 
-DEFAULT_CONFIG = """{
-  "request_url": "http://localhost:8000/",
+import PySimpleGUI as pysg
+
+DEFAULT_CONFIG = """
+{
+  "request_url": "https://localhost:8000/",
   "cookiejar_location": "cookiejar.json",
   "window_size": [1000, 600],
   "window_edge_margin": [15, 15],
   "theme": "SystemDefaultForReal",
   "font": ["Helvetica", 35],
   "item_separation": ["-", 80],
-  "catch_handled_http_exceptions": true,
-  "catch_connectivity_error_exceptions": true,
-  "use_global_exception_handler": true
-}"""
+  "catch_http_exceptions": false,
+  "use_global_exception_handler": false
+}
+
+"""
 
 
 def resource_path(relative_path):  # belangrijk voor wanneer ge-compiled als executable of app.

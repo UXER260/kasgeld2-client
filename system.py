@@ -5,13 +5,22 @@
 from imports import *
 
 
-def restart_program():
+def get_current_branch():
+    return os.popen(f"git rev-parse --abbrev-ref HEAD").read().strip()
+
+
+branch = get_current_branch()
+
+
+def restart_program(extra_arguments=None):
+    if extra_arguments is None:
+        extra_arguments = []
     python = sys.executable
-    os.execv(python, [python] + sys.argv)
+    os.execv(python, [python] + sys.argv + extra_arguments)
 
 
 def fetch_changes():
-    print(os.popen("git fetch --verbose origin").read(), "aaa")
+    print(os.popen("git fetch --verbose origin").read())
 
 
 def get_local_version_number() -> int:
@@ -23,7 +32,7 @@ def get_remote_version_number(fetch=True) -> int:
     """Get remote commit count (int), optionally fetch first"""
     if fetch:
         fetch_changes()
-    return int(os.popen("git rev-list --count origin/master").read())
+    return int(os.popen(f"git rev-list --count origin/{branch}").read())
 
 
 def get_local_hash() -> str:
@@ -33,7 +42,7 @@ def get_local_hash() -> str:
 def get_remote_hash(fetch=True) -> str:
     if fetch:
         fetch_changes()
-    return os.popen("git rev-parse origin/master").read().strip()
+    return os.popen(f"git rev-parse origin/{branch}").read().strip()
 
 
 def check_update_available(fetch=True, return_version=False) -> bool | int:
@@ -64,7 +73,7 @@ def merge_latest_repo(fetch=True) -> bool:
     if fetch:
         fetch_changes()
     print("Merging latest changes...")
-    output = os.popen("git reset --hard origin/master").read()
+    output = os.popen(f"git reset --hard origin/{branch}").read()
     print(output)
     return True
 
@@ -94,3 +103,4 @@ def deploy_latest_update(fetch=True):
     update_requirements()
     print("Done updating. Restarting...")
     restart_program()
+    return None

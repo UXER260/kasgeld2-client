@@ -1,17 +1,33 @@
+# Gebaseerd op ~/PycharmProjects/PythonProjects/BankKasGeldSchool/api/client/old4_fail/bank.py
 # client/backend.py
 # Bevat alle functies voor communicatie met server
 from __future__ import annotations
 
-# Gebaseerd op ~/PycharmProjects/PythonProjects/BankKasGeldSchool/api/client/old4_fail/bank.py
+import os
+import tempfile
 
+# Get the directory of the current script
+safe_dir = os.path.dirname(os.path.abspath(__file__))
+
+# Git prefers forward slashes on all platforms, even on windows.
+safe_dir_git = safe_dir.replace("\\", "/")
+temp_git_config = tempfile.NamedTemporaryFile(delete=False, mode="w", suffix=".gitconfig", encoding="utf-8",
+                                              newline="\n")
+
+# Create a temporary Git config fil
+temp_git_config.write(f"[safe]\n\tdirectory = {safe_dir_git}\n")
+temp_git_config.close()
+
+# Make Git use this config during runtime
+os.environ["GIT_CONFIG_GLOBAL"] = temp_git_config.name
 
 import copy
+import re
 import time
 import traceback
 from pathlib import Path
 from typing import Union
 from unidecode import unidecode
-import PySimpleGUI as pysg
 import Camillo_GUI_framework
 import requests
 
@@ -20,8 +36,11 @@ from models import *
 
 from imports import *
 
+print("current branch :", system.branch)
+print("current version:", system.get_local_version_number())
 
-class AdminLoginMenu(Camillo_GUI_framework.Gui):
+
+class UserLoginMenu(Camillo_GUI_framework.Gui):
     def __init__(self, window_dimensions=(None, None), window_is_popup=True,
                  window_title="Voer gegevens in",
                  restart_on_success=True,
@@ -49,14 +68,14 @@ class AdminLoginMenu(Camillo_GUI_framework.Gui):
     def update(self):
         super().update()
 
-        if self.event == "-PASSWORD-<HoverPassword>":  # Geeft wachtwoord weer bij hover over input
+        if self.event == "-PASSWORD-<HoverPassword>":  # Geeft wachtwoord weer wanneer hovert over input
             self.window["-PASSWORD-"].update(password_char="")
 
         elif self.event == "-PASSWORD-<UnHoverPassword>":
             self.window["-PASSWORD-"].update(password_char="•")
 
         if self.event == "OK" and all(self.values):
-            login_field = AdminLoginField(email=self.values["-EMAIL-"], password=self.values["-PASSWORD-"])
+            login_field = UserLoginField(email_address=self.values["-EMAIL-"], password=self.values["-PASSWORD-"])
             succes = User.login(login_field=login_field)
             if not succes:
                 pysg.popup_quick("Gegevens komen niet overeen", auto_close_duration=1, non_blocking=True,
@@ -71,42 +90,51 @@ class AdminLoginMenu(Camillo_GUI_framework.Gui):
                 # pysg.popup_no_buttons("succes!", non_blocking=True, auto_close=True, auto_close_duration=.75,
                 #                       no_titlebar=True, font=self.font)
                 # return True
-                self.menu.reset_app()
+                self.app.reset_app(restart=self.restart_on_success, extra_arguments=['--no-update'])
                 pysg.popup_no_buttons("succes!", non_blocking=True, auto_close=True, auto_close_duration=.5,
                                       no_titlebar=True, font=self.font, keep_on_top=True)
+                return None
+        return None
 
     def on_close(self):
         App.active = False
 
 
 class App(Camillo_GUI_framework.App):
+    current_session_user: RawUserData
 
     @classmethod
     def login_prompt(cls, restart_on_success=True):
         if pysg.popup_yes_no("Log in voor toegang", title="De inlog is verlopen",
                              font=get_font(), keep_on_top=True) == "Yes":
 
-            cls.set_gui(gui=AdminLoginMenu(restart_on_success=restart_on_success))
+            cls.set_gui(gui=UserLoginMenu(restart_on_success=restart_on_success))
             return True
         else:
             cls.active = False
             return False
 
     @classmethod
-    def on_run(cls):
-        System.check_updates(note_no_updates=False)
-        # system.deploy_latest_update()
+    def on_run(cls, check_updates: bool = True):
+        if check_updates:
+            print("Checking for updates...")
+            System.check_updates(note_no_updates=False)
+        else:
+            print("Skipped update check. (--no-update argument)")
+        # system.deploy_latest_update()  # alternatieve geen-GUI versie.
         # als nieuwe update beschikbaar en gedownload was,
         # dan zal dit programma nu herstarten en alle code hieronder niet meer worden ge-execute
 
-        valid_session = User.check_session_valid()
+        valid_session = User.get_userdata_current_session()
+        cls.current_session_user = valid_session
         if valid_session is False:
-            if cls.login_prompt(restart_on_success=False) is False:
+            if cls.login_prompt(restart_on_success=True) is False:
                 return False
 
         # als het None is dan niet inloggen, maar direct naar kies menu waar gebruiker wordt verteld dat geen connectie
         # todo check of deze comment nog actueel is
         super().on_run()
+        return None
 
     @classmethod
     def error_handler(cls, error: Exception):
@@ -115,14 +143,11 @@ class App(Camillo_GUI_framework.App):
 
         if isinstance(error, requests.exceptions.ConnectionError):
             pysg.Popup(
-                "Verbinding niet (meer) beschikbaar.\n"
-                "Zorg ervoor dat je verbonden bent met het WiFi netwerk 'De Vrije Ruimte'\n\n"
-                "Check je connectie en probeer het opnieuw.", title="Geen verbinding""",
+                "Zorg ervoor dat je verbonden bent met\nhet WiFi netwerk 'De Vrije Ruimte'\n\nGraag melden aan Camillo,\nals dit probleem zich voor blijft doen."
+                , title="Verbinding mislukt. Check je connectie en probeer het opnieuw.""",
                 keep_on_top=True,
                 font=config["font"])
             return
-
-        System.report_crash()
 
         if isinstance(error, requests.exceptions.HTTPError):
             print(error.response.content)
@@ -144,17 +169,32 @@ class App(Camillo_GUI_framework.App):
             )
 
         else:
-            pysg.Popup(
+            description = pysg.PopupGetText(
                 f"⚠Er is een programmafout opgetreden.\n"
                 f"Neem contact op met Camillo\n\n"
                 f"Type: {error.__class__.__name__}\n"
-                f"Beschrijving:\n{str(error)}",
+                f"Beschrijving:\n{str(error)}\n\n"
+                f"Graag hier een beschrijving van acties\n"
+                f"die tot dit probleem liepen:",
                 title=f"Onbekende programmafout", text_color="red", keep_on_top=True, font=config["font"]
             )
 
+            System.report_crash(description=description)
+
+            if pysg.PopupYesNo(
+                    "Programma herstarten?",
+                    title=f"Onbekende programmafout", text_color="red", keep_on_top=True, font=config["font"]
+            ) == 'Yes':
+                cls.reset_app(restart=True)
+            else:
+                raise error
+
+        System.report_crash()
+
+
     @classmethod
-    def run(cls):
-        cls.on_run()
+    def run(cls, check_updates: bool = True):
+        cls.on_run(check_updates=check_updates)
 
         while cls.active:
             if not config["use_global_exception_handler"]:
@@ -173,11 +213,31 @@ def restart_program():
 
 
 class Session(requests.Session):
+    def __init__(self):
+        super().__init__()
+        self.cert_path = "cert.pem"
+        self.cookie_file = Path(config["cookiejar_location"])
+
+        # Load cookies if they exist
+        if self.cookie_file.exists():
+            try:
+                cookies_dict = json.loads(self.cookie_file.read_text())
+                self.cookies = requests.utils.cookiejar_from_dict(cookies_dict)
+            except Exception as e:
+                print("Fout bij laden van cookies:", e)
+
     def request(self, *args, **kwargs):
-        # print("REQUEST", *args)
+        kwargs.setdefault("verify",
+                          self.cert_path)  # dit stukje is crucial. Zorgt ervoor dat requests HTTPS/SSL certificaat van server vertrouwd.
         response = super().request(*args, **kwargs)
-        cookies = requests.utils.dict_from_cookiejar(session.cookies)  # turn cookiejar into dict
-        Path(config["cookiejar_location"]).write_text(json.dumps(cookies))  # save them to file as JSON
+
+        # Save cookies after request
+        try:
+            cookies = requests.utils.dict_from_cookiejar(self.cookies)
+            self.cookie_file.write_text(json.dumps(cookies))
+        except Exception as e:
+            print("Fout bij opslaan van cookies:", e)
+
         return response
 
 
@@ -202,6 +262,8 @@ def get_font(scale: float = 1, font: Union[tuple, list, str] = None):
 
 
 def check_string_valid_float(string: str):
+    if type(string) is float:
+        return float
     try:
         return float(string.replace(',', '.'))
     except ValueError:
@@ -216,37 +278,37 @@ def check_valid_saldo(saldo: float):
     return True
 
 
-def good_status(response: requests.Response, catch_handled_http_exceptions: Optional[bool] = None,
+def good_status(response: requests.Response, catch_http_exceptions: Optional[bool] = None,
                 restart_on_unauthorized=True):
     # assert restart_on_unauthorized is not True
     """
     Checkt of status code goed is van response.
     :param response: Response om te controleren
     :type response: requests.Response
-    :param catch_handled_http_exceptions:
-    :type catch_handled_http_exceptions:
+    :param catch_http_exceptions: todo
+    :type catch_http_exceptions: bool | None
+    :param restart_on_unauthorized: herstart programma wanneer authenticatie is mislukt zodat login popup opkomt
+    :type restart_on_unauthorized bool
     :return: None wanneer sessie ongeldig is, True wanneer alles goed is en False wanneer er iets niet goed is
     :rtype: bool | None
     """
-    catch_handled_http_exceptions = catch_handled_http_exceptions if catch_handled_http_exceptions is not None else \
-        config["catch_handled_http_exceptions"]
-    # print("catch_handled_http_exceptions", catch_handled_http_exceptions, config["catch_handled_http_exceptions"])
-    # print(f"CONTENT {response.content}", response.status_code)
+    catch_http_exceptions = catch_http_exceptions if catch_http_exceptions is not None else \
+        config["catch_http_exceptions"]
     fout = False
     error = None
-    if catch_handled_http_exceptions:
+    if catch_http_exceptions:
         try:
             response.raise_for_status()
         except requests.exceptions.HTTPError as e:
-            print("CONTENT:", response.content)
-            error = e
+            print("Exception:", response.content)
             fout = True
+            error = e
     else:
         response.raise_for_status()
 
     if fout:
         if response.status_code == 404:
-            print("url bestaat niet")
+            print("endpoint bestaat niet")
             return None
 
         elif response.status_code == 401:
@@ -272,18 +334,36 @@ class User:
         self.data = data
 
     @staticmethod
-    def check_session_valid(catch_handled_http_exceptions=None, restart_on_unauthorized=False):
+    def check_session_valid(restart_on_unauthorized=False):
         try:
-            return good_status(session.get(config["request_url"]),
-                               catch_handled_http_exceptions=catch_handled_http_exceptions,
+            response = session.get(config["request_url"])
+            return good_status(response, catch_http_exceptions=True,
                                restart_on_unauthorized=restart_on_unauthorized)
         except requests.exceptions.ConnectionError:
             return None
 
     @staticmethod
-    def login(login_field: AdminLoginField, catch_handled_http_exceptions=None, restart_on_unauthorized=False):
+    def get_userdata_current_session(restart_on_unauthorized=False):
+        try:
+            response = session.get(config["request_url"] + "get_userdata_current_session")
+            print(response.content)
+            if good_status(response, catch_http_exceptions=True,
+                           restart_on_unauthorized=restart_on_unauthorized):
+                return RawUserData(**response.json()["raw_userdata"])
+            return False
+        except requests.exceptions.ConnectionError:
+            return None
+
+    @staticmethod
+    def valid_email(email: str):
+        if ' ' in email:
+            return False
+        return bool(re.match(r"[^@]+@[^@]+\.[^@]+", email))
+
+    @staticmethod
+    def login(login_field: UserLoginField, catch_http_exceptions=None, restart_on_unauthorized=False):
         response = session.post(config["request_url"] + "login", json=login_field.model_dump())
-        return good_status(response, catch_handled_http_exceptions=catch_handled_http_exceptions,
+        return good_status(response, catch_http_exceptions=True,
                            restart_on_unauthorized=restart_on_unauthorized) is True
 
     def set_saldo(self, transaction_details: TransactionField):
@@ -296,14 +376,14 @@ class User:
         self.fetch_and_update_saldo()
         return True
 
-    def fetch_saldo(self, catch_handled_http_exceptions=None) -> str | None:
+    def fetch_saldo(self) -> str | None:
         params = {"user_id": self.data.user_id}
         response = session.get(config["request_url"] + "get_saldo", params=params)
         response.raise_for_status()
 
         return response.json()
 
-    def fetch_saldo_after_transaction(self, transaction_id: int, catch_handled_http_exceptions=None):
+    def fetch_saldo_after_transaction(self, transaction_id: int):
         params = {"user_id": self.data.user_id, "transaction_id": transaction_id}
         response = session.get(config["request_url"] + "get_saldo_after_transaction", params=params)
         response.raise_for_status()
@@ -314,13 +394,13 @@ class User:
         if new_saldo is None:
             return None
 
-        self.data.saldo = new_saldo
+        self.data.saldo = float(new_saldo)
         return self.data.saldo
 
-    def rename(self, new_username: str, catch_handled_http_exceptions=None) -> Optional[bool]:
+    def rename(self, new_username: str, catch_http_exceptions=None) -> Optional[bool]:
         params = {"user_id": self.data.user_id, "new_username": new_username}
         response = session.put(config["request_url"] + "rename_user", params=params)
-        status = good_status(response, catch_handled_http_exceptions=catch_handled_http_exceptions)
+        status = good_status(response, catch_http_exceptions=catch_http_exceptions)
         # todo gebruik deze logica meer in code
         if status is True:
             self.data.name = new_username
@@ -336,9 +416,9 @@ class User:
         return [RawTransactionData(**transaction) for transaction in raw_data]
 
     @staticmethod
-    def get_user_exists_by_username(username: str, catch_handled_http_exceptions=None):
+    def get_user_exists_by_username(username: str, catch_http_exceptions=None):
         response = session.get(config["request_url"] + "get_user_exists_by_username", params={"username": username})
-        status = good_status(response, catch_handled_http_exceptions=catch_handled_http_exceptions)
+        status = good_status(response, catch_http_exceptions=catch_http_exceptions)
         return status if status in [False, None] else response.json()
 
     @staticmethod
@@ -346,13 +426,19 @@ class User:
         return session.get(config["request_url"] + "get_user_exists_by_id", params={"user_id": user_id}).json()
 
     @staticmethod
-    def add_user(userdata: UserSignupData, catch_handled_http_exceptions=None) -> bool | None:
+    def add_user(userdata: UserSignupField, catch_http_exceptions=None) -> bool | None:
         response = session.post(config["request_url"] + "add_user", json=userdata.model_dump())
-        status = good_status(response, catch_handled_http_exceptions=catch_handled_http_exceptions)
+        status = good_status(response, catch_http_exceptions=catch_http_exceptions)
         if status is True:
             return True
 
         if response.status_code == 409:  # conflict met bestaande gebruiker
+            pysg.popup(
+                f"Gebruiker met naam '{userdata.name}' bestaat al.\nKies een andere naam.",
+                title="Gebruiker bestaat al",
+                font=get_font(),
+                keep_on_top=True
+            )
             return None
         else:
             return False
@@ -363,7 +449,7 @@ class User:
 
     @classmethod
     def get_userdata(cls, user_id: int = None, username: str = None,
-                     include_transactions=False, catch_handled_http_exceptions=None):
+                     include_transactions=False, catch_http_exceptions=None):
 
         if [user_id, username].count(None) != 1:
             raise ValueError(
@@ -373,7 +459,7 @@ class User:
         # print(params)
 
         response = session.get(config["request_url"] + "get_userdata", params=params)
-        status = good_status(response, catch_handled_http_exceptions=catch_handled_http_exceptions)
+        status = good_status(response, catch_http_exceptions=catch_http_exceptions)
         if not status:
             return status
 
@@ -384,14 +470,14 @@ class User:
         }
 
     @staticmethod
-    def get_username_list(catch_handled_http_exceptions=None, restart_on_unauthorized=True):
+    def get_username_list(catch_http_exceptions=None, restart_on_unauthorized=True):
         response = session.get(config["request_url"] + "get_username_list")
-        return response.json() if good_status(response, restart_on_unauthorized=restart_on_unauthorized,
-                                              catch_handled_http_exceptions=catch_handled_http_exceptions) is True \
+        return response.json() if good_status(response, catch_http_exceptions=catch_http_exceptions,
+                                              restart_on_unauthorized=restart_on_unauthorized) is True \
             else ["Geen geldige verbinding"]
 
     @classmethod
-    def get_transaction_list(cls, user_id: int, catch_handled_http_exceptions=None):
+    def get_transaction_list(cls, user_id: int):
         response = session.get(config["request_url"] + "get_transaction_list", params={"user_id": user_id})
         response.raise_for_status()
         return cls.generate_transaction_object_list(response.json())
@@ -402,18 +488,29 @@ class User:
     #     return session.post(config["request_url"] + "generate_transaction",
     #                         params=params, json=transaction_details.model_dump()).json()
 
+    def delete_transaction(self, transaction_id: int, catch_http_exceptions=None):
+        return User.delete_transaction_by_id(self.data.user_id, transaction_id,
+                                             catch_http_exceptions=catch_http_exceptions)
+
     @staticmethod
-    def delete_user(user_id: int, catch_handled_http_exceptions=None) -> bool:
+    def delete_transaction_by_id(user_id: int, transaction_id: int, catch_http_exceptions=None):
+        params = {"user_id": user_id, "transaction_id": transaction_id}
+        response = session.delete(config["request_url"] + "delete_transaction", params=params)
+        if good_status(response, catch_http_exceptions=catch_http_exceptions) is not True:
+            return False
+        return True
+
+
+    @staticmethod
+    def delete_user(user_id: int, catch_http_exceptions=None) -> bool:
         response = session.delete(config["request_url"] + "delete_user", params={"user_id": user_id})
-        status = good_status(response, catch_handled_http_exceptions=catch_handled_http_exceptions)
+        status = good_status(response, catch_http_exceptions=catch_http_exceptions)
         return status if status in [False, None] else True
         # return True if good_status(
-        # response, catch_handled_http_exceptions=catch_handled_http_exceptions) is True else False
+        # response, catch_http_exceptions=catch_http_exceptions) is True else False
 
 
 class System:
-    current_version_number: int = None
-
     @classmethod
     def check_updates(cls, note_no_updates=True):  # todo implementeer knop in instellingen GUI
         pysg.popup_no_buttons(
@@ -477,7 +574,10 @@ class System:
             title="Bijwerken voltooid", non_blocking=False, auto_close=True,
             auto_close_duration=2)
 
+        system.update_requirements(requirements_file="requirements.txt")
+
         restart_program()
+        return None
 
     @classmethod
     def report_crash(cls, description: str | None = None):
@@ -506,9 +606,14 @@ class System:
 
     @classmethod
     def send_crashreport(cls, crash_report):
-        response = session.post(config["request_url"] + "report_crash",
-                                json=crash_report)
-        response.raise_for_status()
+        try:
+            response = session.post(config["request_url"] + "report_crash",
+                                    json=crash_report)
+            response.raise_for_status()
+        except (requests.exceptions.HTTPError, requests.exceptions.ConnectionError,
+                requests.exceptions.RequestException):
+            return False
+
         return response.status_code == 200
 
 

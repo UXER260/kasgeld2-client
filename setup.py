@@ -1,12 +1,18 @@
-# Created by camillodejong at 16/05/2025 18:22
 from setuptools import setup
 
 APP = ['main.py']
-DATA_FILES = ['config.json', 'cookiejar.json']  # Add any other needed files
+DATA_FILES = [('', ['cert.pem', 'config.json', 'cookiejar.json', 'crash_reports.json'])]
 OPTIONS = {
     'argv_emulation': False,
-    'includes': [],
-    'packages': [],
+    'includes': ['backend'],
+    'packages': ['PySimpleGUI.py'],
+    'resources': ['.git'],
+    'iconfile': None,  # Optional: add an .icns icon
+    'plist': {
+        'CFBundleName': 'KasgeldApp',
+        'CFBundleShortVersionString': 'v5.44.0-dev',
+        'CFBundleIdentifier': 'com.camillodejong.kasgeldapp',
+    },
 }
 
 setup(

@@ -7,30 +7,30 @@ from typing import Optional
 from pydantic import BaseModel
 
 
-class AdminLoginField(BaseModel):
-    email: str
+class UserLoginField(BaseModel):
+    email_address: str
     password: str
 
 
-class AdminSignupField(BaseModel):
+class UserSignupField(BaseModel):
     name: str
-    email: str
+    email_address: str
     password: str
-
-
-class UserSignupData(BaseModel):
-    name: str
     saldo: float
+    update_kasgeld: bool = True
     signup_timestamp: Optional[int] = None
     last_update_timestamp: Optional[int] = None
 
-
 class RawUserData(BaseModel):  # voor data direct uit database
-    user_id: int
     name: str
+    email_address: str
+    user_id: int
     saldo: float
-    last_update_timestamp: int
-    signup_timestamp: int
+    update_kasgeld: bool = True
+    signup_timestamp: Optional[int] = None
+    last_update_timestamp: Optional[int] = None
+    admin: bool = False
+    banned: bool = False
 
 
 class TransactionField(BaseModel):
@@ -45,6 +45,6 @@ class RawTransactionData(BaseModel):
     title: str
     description: str
     amount: float
-    record_creation_timestamp: int
     transaction_timestamp: int
-    user_id: int
+    record_creation_timestamp: int
+    user_id: Optional[int] = None
