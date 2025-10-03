@@ -1,3 +1,5 @@
+Maak UserMultiSelectionWindow af en implementeer.
+
 Transactie verwijderen voor alle gebruikers of één gebruiker kies menu
 
 Als je op enter drukt bij search bar dan probeert data van dat persoon direct te verkrijgen (ook admins)
@@ -22,7 +24,6 @@ Users met admin flag krijgen andere interface, zoals:
 de optie een aangemaakte gebruiker admin te maken,
 kasgeld voor gebruiker uit te schakelen
 
-Maak UserMultiSelectionWindow af en implementeer.
 
 Als er meerdere gebruikers gelinkt zijn aan een transactie wordt er gevraagd
 of deze transactie alleen voor deze gebruiker of voor alle gebruikers moet worden verwijderd.
