@@ -90,6 +90,23 @@ class UserSelectionWindow(Camillo_GUI_framework.Gui):
              pysg.Button("Voeg gebruiker toe", font=self.font, expand_x=True, key="-ADD-SELECT-USER_BUTTON-")]
         ]
 
+    def open_user_overview(self, username):
+        data = backend.User.get_userdata(username=username, include_transactions=True)
+        if data is None:
+            pysg.popup(f"Gebruiker met naam '{username}' bestaat niet meer.", title="ERROR",
+                       font=self.font, keep_on_top=True)
+            self.refresh(namelist_fetch=True)
+            return False
+
+        # else...
+
+        user = data["userdata"]
+        transaction_list = data["transaction_list"]
+        App.set_gui(
+            gui=UserOverviewWindow(user=user, transaction_list=transaction_list)
+        )
+        return None
+
     def update(self):
         if self.namelist is None:
             self.refresh(namelist_fetch=True)
@@ -126,30 +143,24 @@ class UserSelectionWindow(Camillo_GUI_framework.Gui):
                 self.window["-ADD-SELECT-USER_BUTTON-"].update(self.add_select_user_button_text())
                 return None
 
-            data = backend.User.get_userdata(username=username, include_transactions=True)
-            if data is None:
-                pysg.popup(f"Gebruiker met naam '{username}' bestaat niet meer.", title="ERROR",
-                           font=self.font, keep_on_top=True)
-                self.refresh(namelist_fetch=True)
-                return False
+            return self.open_user_overview(username)
 
-            # else...
-
-            user = data["userdata"]
-            transaction_list = data["transaction_list"]
-            App.set_gui(
-                gui=UserOverviewWindow(user=user, transaction_list=transaction_list)
-            )
-            return None
-
-        elif self.event == "-ADD-SELECT-USER_BUTTON-" and self.multi_selection_mode is False:
+        elif self.event == "-ADD-SELECT-USER_BUTTON-" and self.multi_selection_mode is False:  # voeg gebruiker toe
             search_bar_field = self.values["-SEARCH_BAR_FIELD-"]
             filled_in_username = search_bar_field if search_bar_field and not self.window[
                 "-NAMELIST-"].get_list_values() else None
             App.set_gui(gui=AddUserMenu(filled_in_username=filled_in_username))
             return None
-        elif self.event == "-ADD-SELECT-USER_BUTTON-" and self.multi_selection_mode is True:
-            ...
+
+        elif self.event == "-ADD-SELECT-USER_BUTTON-" and self.multi_selection_mode is True:  # open multi-view (tenzij alleen 1 gebruiker is geselecteerd)
+            if len(self.selected_items) == 1:
+                if not self.namelist:
+                    return None
+                username = self.namelist[self.selected_index]
+                return self.open_user_overview(username)
+
+            # get userdata list
+            # pass list to and open UserMultiOverviewWindow
 
         return None
 
@@ -183,7 +194,14 @@ class UserSelectionWindow(Camillo_GUI_framework.Gui):
                 self.window["-NAMELIST-"].update(self.namelist)
 
 
-class UserMultiOverviewWindow(Camillo_GUI_framework.Gui): ...
+class UserMultiOverviewWindow(Camillo_GUI_framework.Gui):
+    def __init__(self, selected_users: list[backend.RawUserData],
+                 window_title: str = "Gebruikersoverzicht - x leerlingen geselecteerd", *args, **kwargs):
+        self.selected_users = selected_users
+        self.selected_users_amount = len(self.selected_users)
+        self.window_title_text = window_title
+        super().__init__(window_title=self.window_title_text.replace('x', str(self.selected_users_amount)), *args,
+                         **kwargs)
 
 
 # class UserMultiSelectionWindow(UserSelectionWindow):
