@@ -42,12 +42,21 @@ class UserSelectionWindow(Camillo_GUI_framework.Gui):
 
     def add_select_user_button_text(self, geselecteerd_aantal_gebruikers: int = None,
                                     text_multi_selection_mode_false: str = "Voeg gebruiker toe",
-                                    text_multi_selection_mode_true: str = "Selecteer x gebruikers"):
+                                    text_multi_selection_mode_true: str = "Selecteer x gebruiker",
+                                    text_no_selected_users: str = "Geen gebruikers geselecteerd"):
         if geselecteerd_aantal_gebruikers is None:
             geselecteerd_aantal_gebruikers = len(self.selected_items)
-        return text_multi_selection_mode_false if self.multi_selection_mode is False else text_multi_selection_mode_true.replace(
-            'x', str(geselecteerd_aantal_gebruikers))
 
+        if self.multi_selection_mode is False:
+            return text_multi_selection_mode_false
+        else:
+            if geselecteerd_aantal_gebruikers != 0:
+                text = text_multi_selection_mode_true.replace('x', str(geselecteerd_aantal_gebruikers))
+            else:
+                return text_no_selected_users
+            if geselecteerd_aantal_gebruikers != 1:
+                text += 's'
+            return text
 
     def multi_selection_button(self, *args, **kwargs):
         self.multi_selection_mode = not self.multi_selection_mode
