@@ -40,26 +40,43 @@ class UserSelectionWindow(Camillo_GUI_framework.Gui):
 
         return f"{prefix}{suffix_true if variable is True else suffix_false}"
 
+    def add_select_user_button_text(self, geselecteerd_aantal_gebruikers: int = None,
+                                    text_multi_selection_mode_false: str = "Voeg gebruiker toe",
+                                    text_multi_selection_mode_true: str = "Selecteer x gebruiker",
+                                    text_no_selected_users: str = "Geen gebruikers geselecteerd"):
+        if geselecteerd_aantal_gebruikers is None:
+            geselecteerd_aantal_gebruikers = len(self.selected_items)
+
+        if self.multi_selection_mode is False:
+            return text_multi_selection_mode_false
+        else:
+            if geselecteerd_aantal_gebruikers != 0:
+                text = text_multi_selection_mode_true.replace('x', str(geselecteerd_aantal_gebruikers))
+            else:
+                return text_no_selected_users
+            if geselecteerd_aantal_gebruikers != 1:
+                text += 's'
+            return text
+
     def multi_selection_button(self, *args, **kwargs):
         self.multi_selection_mode = not self.multi_selection_mode
-        self.window["-MULTI_SELECTION_MODE_TOGGLE-"].update(self.multi_selection_button_text())
         if self.multi_selection_mode is True:
             self.window.set_title(
-                f"Leerlingenoverzicht ({len(self.values['-namelist-'])}/{len(self.namelist)} geselecteerd) | Ingelogd als `{self.app.current_session_user.name}`")
-            self.window["-namelist-"].Widget.config(selectmode=self.default_multi_select_mode)
+                f"Leerlingenoverzicht ({len(self.values['-NAMELIST-'])}/{len(self.namelist)} geselecteerd) | Ingelogd als `{self.app.current_session_user.name}`")
+            self.window["-NAMELIST-"].Widget.config(selectmode=self.default_multi_select_mode)
         else:
             self.window.set_title(
                 f"Leerlingenoverzicht (totaal {len(self.namelist)}) | Ingelogd als `{self.app.current_session_user.name}`")
-            self.window["-namelist-"].Widget.config(selectmode=self.default_single_select_mode)
+            self.window["-NAMELIST-"].Widget.config(selectmode=self.default_single_select_mode)
 
-            # if self.window["-namelist-"].get_list_values():
-            #     # Find the last selected item
-            #     if self.values.get("-namelist-", None):
-            # todo kijk of dit nodig is
-
-            # Update the Listbox to select only the last selected item
+            # Update de Listbox zodat het alleen het de laatst geselecteerde item selecteert
             if self.selected_items:
-                self.window["-namelist-"].update(set_to_index=[self.selected_index])
+                self.window["-NAMELIST-"].update(set_to_index=[self.selected_index])
+                self.selected_items = [self.window["-NAMELIST-"].Values[self.selected_index]] if len(
+                    self.selected_items) != 0 else []
+
+        self.window["-MULTI_SELECTION_MODE_TOGGLE-"].update(self.multi_selection_button_text())
+        self.window["-ADD-SELECT-USER_BUTTON-"].update(self.add_select_user_button_text())
 
     def layout(self) -> list[list[pysg.Element]]:
         namelist = self.namelist if self.namelist is not None else [""]
@@ -67,10 +84,10 @@ class UserSelectionWindow(Camillo_GUI_framework.Gui):
             [pysg.InputText("", font=self.font, expand_x=True, key='-SEARCH_BAR_FIELD-',
                             enable_events=True), pysg.Button("👤", font=self.font)],
             [pysg.Listbox(namelist, font=self.font, expand_x=True, expand_y=True,
-                          enable_events=True, key='-namelist-',
+                          enable_events=True, key='-NAMELIST-',
                           right_click_menu=[None, ["Select", "Select all users"]])],
             [pysg.Button(self.multi_selection_button_text(), font=self.font, key="-MULTI_SELECTION_MODE_TOGGLE-"),
-             pysg.Button("Voeg gebruiker toe", font=self.font, expand_x=True, key="-ADD_USER_BUTTON-")]
+             pysg.Button("Voeg gebruiker toe", font=self.font, expand_x=True, key="-ADD-SELECT-USER_BUTTON-")]
         ]
 
     def update(self):
@@ -85,8 +102,8 @@ class UserSelectionWindow(Camillo_GUI_framework.Gui):
             self.refresh(search_for_name=True)  # search feature
             return None
 
-        elif self.event == '-namelist-' and self.window["-namelist-"].get_list_values():
-            self.selected_items = set(self.values["-namelist-"])
+        elif self.event == '-NAMELIST-' and self.window["-NAMELIST-"].get_list_values():
+            self.selected_items = set(self.values["-NAMELIST-"])
             len_selected_items = len(self.selected_items)
             len_last_selection = len(self.last_selection)
             print("\n\n")
@@ -105,7 +122,8 @@ class UserSelectionWindow(Camillo_GUI_framework.Gui):
             print(self.selected_index)
             if self.multi_selection_mode is True:
                 self.window.set_title(
-                    f"Leerlingenoverzicht ({len(self.values['-namelist-'])}/{len(self.namelist)} geselecteerd) | Ingelogd als `{self.app.current_session_user.name}`")
+                    f"Leerlingenoverzicht ({len(self.values['-NAMELIST-'])}/{len(self.namelist)} geselecteerd) | Ingelogd als `{self.app.current_session_user.name}`")
+                self.window["-ADD-SELECT-USER_BUTTON-"].update(self.add_select_user_button_text())
                 return None
 
             data = backend.User.get_userdata(username=username, include_transactions=True)
@@ -124,18 +142,20 @@ class UserSelectionWindow(Camillo_GUI_framework.Gui):
             )
             return None
 
-        elif self.event == "-ADD_USER_BUTTON-":
+        elif self.event == "-ADD-SELECT-USER_BUTTON-" and self.multi_selection_mode is False:
             search_bar_field = self.values["-SEARCH_BAR_FIELD-"]
             filled_in_username = search_bar_field if search_bar_field and not self.window[
-                "-namelist-"].get_list_values() else None
+                "-NAMELIST-"].get_list_values() else None
             App.set_gui(gui=AddUserMenu(filled_in_username=filled_in_username))
             return None
+        elif self.event == "-ADD-SELECT-USER_BUTTON-" and self.multi_selection_mode is True:
+            ...
+
         return None
 
     def update_search_and_namelist(self, search_for_name: str, namelist: str):
         ...  # todo fixme
 
-    # fixme fix scroll reset na TERUGKNOP gebruiken
     def refresh(self, search_for_name: Union[bool, str] = False, namelist_fetch=False):  # refresh namelist
         if search_for_name is True:
             search_for_name = self.values["-SEARCH_BAR_FIELD-"]
@@ -149,9 +169,6 @@ class UserSelectionWindow(Camillo_GUI_framework.Gui):
         else:
             new_namelist = self.namelist
 
-        # print("lists")
-        # print(new_namelist)
-        # print(self.namelist)
         namelist_changed = new_namelist != self.namelist
         self.namelist = new_namelist
         self.window.set_title(
@@ -161,55 +178,26 @@ class UserSelectionWindow(Camillo_GUI_framework.Gui):
             print("search_for_name", f"'{search_for_name}'")
             if search_for_name is not None:
                 self.window["-SEARCH_BAR_FIELD-"].update(search_for_name)
-                self.window["-namelist-"].update(backend.filter_list(search=search_for_name, seq=self.namelist))
+                self.window["-NAMELIST-"].update(backend.filter_list(search=search_for_name, seq=self.namelist))
             elif namelist_changed:
-                self.window["-namelist-"].update(self.namelist)
-
-        # search_for_name = search_for_name if search_for_name else None
-        # search_for_name = search_for_name if search_for_name is not None else self.values["-SEARCH_BAR_FIELD-"]
-        #
-        # if namelist_fetch:
-        #     new_namelist = backend.User.get_usernamelist()
-        # else:
-        #     new_namelist = self.namelist
-        #
-        # print("aaaa", search_for_name)
-        #
-        # if len(new_namelist) != len(self.namelist) or namelist_fetch is False:
-        #     print("Name list is ge-update")
-        #     self.namelist = new_namelist
-        #     if search_for_name:
-        #         self.window["-namelist-"].update(backend.filter_list(search=search_for_name, seq=self.namelist))
-        #         self.window["-SEARCH_BAR_FIELD-"].update(search_for_name)
-        #     else:
-        #         self.window["-namelist-"].update(self.namelist)
-
-        # new_namelist = backend.User.get_usernamelist()
-        # updated = set(new_namelist) - set(self.namelist)
-        # print(updated)
-        #
-        # if self.values and self.values["-SEARCH_BAR_FIELD-"]:
-        #     print("A")
-        #     self.window['-namelist-'].update(backend.filter_list(self.values["-SEARCH_BAR_FIELD-"], self.namelist))
-        #     self.window["-SEARCH_BAR_FIELD-"].update(search_for_name)
-        #
-        # else:
-        #     print("B")
-        #     self.window["-namelist-"].update(self.namelist)
+                self.window["-NAMELIST-"].update(self.namelist)
 
 
-class UserMultiSelectionWindow(UserSelectionWindow):
-    def layout(self) -> list[list[pysg.Element]]:
-        namelist = self.namelist if self.namelist is not None else [""]
-        return [
-            [pysg.InputText("", font=self.font, expand_x=True, key='-SEARCH_BAR_FIELD-',
-                            enable_events=True), pysg.Button("👤", font=self.font)],
-            [pysg.Listbox(namelist, font=self.font, expand_x=True, expand_y=True,
-                          enable_events=True, key='-namelist-',
-                          right_click_menu=[None, ["Select", "Select all users"]])],
-            [pysg.Button(self.multi_selection_button_text(), font=self.font, key="-MULTI_SELECTION_MODE_TOGGLE-"),
-             pysg.Button("Verder", font=self.font, expand_x=True, key="-CONTINUE_BUTTON-")]
-        ]
+class UserMultiOverviewWindow(Camillo_GUI_framework.Gui): ...
+
+
+# class UserMultiSelectionWindow(UserSelectionWindow):
+#     def layout(self) -> list[list[pysg.Element]]:
+#         namelist = self.namelist if self.namelist is not None else [""]
+#         return [
+#             [pysg.InputText("", font=self.font, expand_x=True, key='-SEARCH_BAR_FIELD-',
+#                             enable_events=True), pysg.Button("👤", font=self.font)],
+#             [pysg.Listbox(namelist, font=self.font, expand_x=True, expand_y=True,
+#                           enable_events=True, key='-NAMELIST-',
+#                           right_click_menu=[None, ["Select", "Select all users"]])],
+#             [pysg.Button(self.multi_selection_button_text(), font=self.font, key="-MULTI_SELECTION_MODE_TOGGLE-"),
+#              pysg.Button("Verder", font=self.font, expand_x=True, key="-CONTINUE_BUTTON-")]
+#         ]
 
 
 class UserOverviewWindow(Camillo_GUI_framework.Gui):

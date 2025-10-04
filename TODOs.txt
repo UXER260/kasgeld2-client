@@ -1,3 +1,24 @@
+Maak UserOverviewWindow:
+Statistieken (o.a.):
+- Totaal saldo
+- Gemiddeld Saldo
+Opties:
+- Gezamenlijke transactie
+    Als één of meer van de leerlingen niet voldoende saldo heeft voor de transactie, dan krijgt de gebruiker een pop-op met informatie en de volgende twee opties geeft:
+    Optie 1: Annuleren
+    Optie 2: Doorgaan
+        Als je doorgaat, zal je een optie krijgen om de leerling alles te laten geven wat hij/zij heeft zodat deze leerling na de transactie uitkomt op een saldo van 0
+        of om het volledige bedrag voor die leerling af te trekken waardoor het saldo van de leerling onder de 0 komt te staan.
+- Transacties bekijken die onder deze leerlingen gedeeld zijn met de optie ze te bekijken en te verwijderen.
+- Leerlingen verwijderen
+    Na drukken komt popup met heel duidelijke uitleg van de gevolgen van deze actie.
+
+
+Lijst met gedeelde transacties:
+- Lijst met deelnemende leerlingen
+- Totaal betaald
+- Betaald per leerling
+
 Transactie verwijderen voor alle gebruikers of één gebruiker kies menu
 
 Als je op enter drukt bij search bar dan probeert data van dat persoon direct te verkrijgen (ook admins)
@@ -22,7 +43,6 @@ Users met admin flag krijgen andere interface, zoals:
 de optie een aangemaakte gebruiker admin te maken,
 kasgeld voor gebruiker uit te schakelen
 
-Maak UserMultiSelectionWindow af en implementeer.
 
 Als er meerdere gebruikers gelinkt zijn aan een transactie wordt er gevraagd
 of deze transactie alleen voor deze gebruiker of voor alle gebruikers moet worden verwijderd.
