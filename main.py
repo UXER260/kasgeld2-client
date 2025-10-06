@@ -22,9 +22,9 @@ class UserSelectionWindow(Camillo_GUI_framework.Gui):
         self.default_multi_select_mode = pysg.SELECT_MODE_MULTIPLE
         self.namelist = namelist
         if window_title is None and namelist:
-            window_title = f"Leerlingenoverzicht (totaal {len(namelist)})"
+            window_title = f"Leerlingenoverzicht (totaal {len(namelist)}) - {'Versleutelde v' if config['request_url'].startswith('https://') else 'V'}erbinding met server: {config['request_url']}"
         elif not window_title:
-            window_title = "Leerlingenoverzicht"
+            window_title = f"Leerlingenoverzicht - {'Versleutelde v' if config['request_url'].startswith('https://') else 'V'}erbinding met server: {config['request_url']}"
 
         self.multi_selection_mode = multi_selection_mode
         self.last_selection = set()
@@ -62,11 +62,11 @@ class UserSelectionWindow(Camillo_GUI_framework.Gui):
         self.multi_selection_mode = not self.multi_selection_mode
         if self.multi_selection_mode is True:
             self.window.set_title(
-                f"Leerlingenoverzicht ({len(self.values['-NAMELIST-'])}/{len(self.namelist)} geselecteerd) | Ingelogd als `{self.app.current_session_user.name}`")
+                f"Leerlingenoverzicht ({len(self.values['-NAMELIST-'])}/{len(self.namelist)} geselecteerd) | Ingelogd als `{self.app.current_session_user.name}` - {'Versleutelde v' if config['request_url'].startswith('https://') else 'V'}erbinding met server: {config['request_url']}")
             self.window["-NAMELIST-"].Widget.config(selectmode=self.default_multi_select_mode)
         else:
             self.window.set_title(
-                f"Leerlingenoverzicht (totaal {len(self.namelist)}) | Ingelogd als `{self.app.current_session_user.name}`")
+                f"Leerlingenoverzicht (totaal {len(self.namelist)}) | Ingelogd als `{self.app.current_session_user.name}` - {'Versleutelde v' if config['request_url'].startswith('https://') else 'V'}erbinding met server: {config['request_url']}")
             self.window["-NAMELIST-"].Widget.config(selectmode=self.default_single_select_mode)
 
             # Update de Listbox zodat het alleen het de laatst geselecteerde item selecteert
@@ -183,7 +183,7 @@ class UserSelectionWindow(Camillo_GUI_framework.Gui):
         namelist_changed = new_namelist != self.namelist
         self.namelist = new_namelist
         self.window.set_title(
-            f"Leerlingenoverzicht (totaal {len(self.namelist)}) | Ingelogd als `{self.app.current_session_user.name}`")
+            f"Leerlingenoverzicht (totaal {len(self.namelist)}) | Ingelogd als `{self.app.current_session_user.name}` - {'Versleutelde v' if config['request_url'].startswith('https://') else 'V'}erbinding met server: {config['request_url']}")
 
         if search_for_name is not None or namelist_changed:
             print("search_for_name", f"'{search_for_name}'")

@@ -13,6 +13,6 @@
     "-",
     100
   ],
-  "catch_http_exceptions": false,
-  "use_global_exception_handler": false
+  "catch_http_exceptions": true,
+  "use_global_exception_handler": true
 }
